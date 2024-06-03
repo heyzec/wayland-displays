@@ -1,6 +1,10 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 {
   name = "Test on Hyprland";
+
+  # Refer to:
+  # https://nixos.org/manual/nixos/stable/#sec-writing-nixos-tests
+  # https://github.com/NixOS/nixpkgs/blob/master/nixos/tests/sway.nix
 
   nodes = {
     machine1 = { pkgs, ... }: {
@@ -9,52 +13,37 @@
       ];
     };
     machine2 = { pkgs, ... }: {
-      virtualisation.qemu.options = [
-        # For a high level outline of available options, see:
-        # https://wiki.gentoo.org/wiki/QEMU/Options
-
-        # For a comprehensive list of video devices, see:
-        # https://www.kraxel.org/blog/2019/09/display-devices-in-qemu/
-        # https://www.kraxel.org/blog/2021/05/virtio-gpu-qemu-graphics-update/
-
-        # Works
-        "-device virtio-vga-gl,max_outputs=2"
-        "-display gtk,gl=on,show-cursor=off"
-
-        # Works but is slow
-        # "-device virtio-vga"
-        # "-display gtk,gl=off,show-cursor=off"
-
-        # Incantations for creating a second monitor
-        # https://github.com/qemu/qemu/blob/master/docs/multiseat.txt
-        "-device pci-bridge,addr=12.0,chassis_nr=2,id=head.2"
-        "-device secondary-vga,bus=head.2,addr=02.0,id=video.2"
-        "-device nec-usb-xhci,bus=head.2,addr=0f.0,id=usb.2"
-        "-device usb-kbd,bus=usb.2.0,port=1,display=video.2"
-        "-device usb-tablet,bus=usb.2.0,port=2,display=video.2"
-      ];
-      virtualisation.writableStore = true;
-
-      users.users.test = {
+      users.users.alice = {
         isNormalUser = true;
-        password = "test";
+        password = "alice";
+        extraGroups = [
+          "wheel"
+        ];
       };
+      services.getty.autologinUser = "alice";
 
-      virtualisation = {
-        memorySize = 8192;
-        cores = 4;
-      };
+      # Need to switch to a different GPU driver than the default one (-vga std) so that Sway can launch:
+      virtualisation.qemu.options = [ "-vga none -device virtio-gpu-pci" ];
 
-      services.displayManager = {
-        sddm.enable = true;
-        sddm.wayland.enable = true;
-        autoLogin.enable = true;
-        autoLogin.user = "test";
-      };
+      # Automatically configure and start Sway when logging in on tty1:
+      programs.bash.loginShellInit = ''
+        if [ "$(tty)" = "/dev/tty1" ]; then
+          set -e
+
+          mkdir -p /home/alice/.config/hypr/
+          echo "exec = kitty" > /home/alice/.config/hypr/hyprland.conf
+          # echo "exec = wdisplays > /home/alice/logs" > /home/alice/.config/hypr/hyprland.conf
+          # echo "exec = hyprctl monitors -j | jq -r '.[].name' | xargs -I{} hyprctl keyword monitor {},1920x1080@60,0x0,1" >> /home/alice/.config/hypr/hyprland.conf
+
+          export XDG_RUNTIME_DIR=/run/user/1000/
+          Hyprland
+        fi
+      '';
 
       programs.hyprland = {
         enable = true;
       };
+
       environment.systemPackages = with pkgs; [
         kitty  # For bare hyprland to be usable
         way-displays
@@ -65,29 +54,31 @@
         remmina
         wayvnc
       ];
-      nix.settings.experimental-features = [ "nix-command" "flakes" ];
-
-      systemd.services."hello" = {
-        script = ''
-          mkdir -p /home/test/.config/hypr/
-          echo "exec = kitty" > /home/test/.config/hypr/hyprland.conf
-          echo "exec = hyprctl monitors -j | jq -r '.[].name' | xargs -I{} hyprctl keyword monitor {},1920x1080@60,0x0,1" >> /home/test/.config/hypr/hyprland.conf
-        '';
-        wantedBy = [ "network-online.target" ];
-      };
-
     };
 
   };
 
+  enableOCR = true;
+
   interactive.nodes.machine1 = import ./debug-host-module.nix;
 
   testScript = /* python */ ''
-    start_all()
-    machine1.wait_for_unit("network-online.target")
-    machine2.wait_for_unit("graphical.target")
+    machine = machine2
+    with subtest("ensure hyprland starts"):
+        # machine.wait_until_succeeds("ls /tmp/hypr/*")
+        machine.wait_until_succeeds("ps aux | grep Hyprland")
+        machine.sleep(1)
+        machine.succeed("ps aux | grep Hyprland")
+        machine.wait_for_text("alice@machine", 1)
+        # machine.sleep(3)
+        machine.screenshot("started")
 
-    machine1.succeed("ping -c 1 machine2")
-    machine2.succeed("ping -c 1 machine1")
+
+    with subtest("wdisplays"):
+        machine.execute("sudo -u alice sh -c 'kitty --detach -- wdisplays'")
+        # machine.wait_for_file("/home/alice/logs")
+        # machine.copy_from_vm("/home/alice/logs", "")
+        machine.sleep(1)
+        machine.screenshot("wdisplays")
   '';
 }
