@@ -7,18 +7,21 @@
     flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
   };
 
-  outputs = inputs@{ self, flake-parts, ... }: flake-parts.lib.mkFlake { inherit inputs self; } {
-    systems = [ "x86_64-linux" ];
-    perSystem = { config, pkgs, ... }: {
-
-      devShells.default = pkgs.mkShell {
+  outputs = { self, nixpkgs, ... }@inputs: let
+    system = "x86_64-linux";      # system arch
+    pkgs = nixpkgs.legacyPackages.${system};
+  in {
+      devShells.${system}.default = pkgs.mkShell {
         buildInputs = with pkgs; [
           gtk3
           pkg-config
         ];
       };
 
-      packages.cli = pkgs.stdenv.mkDerivation {
+      packages.${system} = {
+
+
+      cli = pkgs.stdenv.mkDerivation {
         name = "cli";
         src = self;
         buildInputs = with pkgs; [
@@ -28,7 +31,7 @@
         installPhase = "mkdir -p $out/bin; install -t $out/bin cli";
       };
 
-      packages.gui = pkgs.stdenv.mkDerivation {
+      gui = pkgs.stdenv.mkDerivation {
         name = "gui";
         src = self;
         buildInputs = with pkgs; [
@@ -38,6 +41,21 @@
         ];
         buildPhase = "g++ -o gui ./gui.cpp `pkg-config --cflags --libs gtk+-3.0`";
         installPhase = "mkdir -p $out/bin; install -t $out/bin gui";
+      };
+
+
+      # nix -L build .#test
+      test = pkgs.testers.runNixOSTest ./tests/test.nix;
+      # checks.${system} = config.packages;
+    };
+
+    nixosConfigurations = {
+      # The configuration for build-vm (home manager as a module)
+      "nixie-vm" = inputs.nixpkgs.lib.nixosSystem {
+        modules = [
+          ({ nixpkgs.hostPlatform = system; })
+          ({ programs.hyprland.enable = true; })
+        ];
       };
     };
   };
