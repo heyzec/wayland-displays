@@ -21,7 +21,7 @@
           ] ++ config.packages.default.nativeBuildInputs ++ [
             # Hack for LSPs to find headers
             # Find using nix-locate <missing-header> | grep -v ^\(
-            (runCommand "cDependencies" { } ''
+            (runCommand "cDependencies" { src = ./.; } ''
               mkdir -p $out/include
               cp -r ${gtk3.dev}/include/gtk-3.0/* $out/include
               cp -r ${cairo.dev}/include/cairo/* $out/include
@@ -33,6 +33,10 @@
               cp -r ${harfbuzz.dev}/include/harfbuzz/* $out/include
               cp -r ${gdk-pixbuf.dev}/include/gdk-pixbuf-2.0/* $out/include
               cp -r ${at-spi2-atk.dev}/include/atk-1.0/* $out/include
+
+              cp $src/protocols/* $out/include
+              ls $out/include
+              # exit 1
             '')
           ];
         };
@@ -45,6 +49,7 @@
             "^src.*"
             "CMakeLists.txt"
             "^cmake.*"
+            "^protocols.*"
           ];
 
           # Needed at compile time
@@ -54,6 +59,8 @@
             pkg-config
             gtk3
             cairo
+            wayland
+            wayland-scanner
           ];
 
           # Needed at run time
