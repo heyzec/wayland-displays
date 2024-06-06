@@ -1,7 +1,10 @@
 # Flakes
 .direnv/
 
-# Test artefacts
+# Build artifacts
+build/
+
+# Test artifacts
 result
 .nixos-test-history
 

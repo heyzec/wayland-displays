@@ -52,4 +52,20 @@ wayland-displays aims to address this gap by integrating the best aspects of exi
 ### autorandr
 [phillipberndt/autorandr](https://github.com/phillipberndt/autorandr) is a Python rewrite of [wertarbyte/autorandr](https://github.com/wertarbyte/autorandr) meant for X11. Under the hood, they both use xrandr. Even though these tools have existed for many years, they support the feature of profiles. It can still be informative to see how displays were managed in the X11 days.
 
+## Build instructions
+
+Dependencies:
+- cmake
+- GTK3
+- Cairo
+
+```
+cmake -B build -S .
+cd build
+cmake --build .
+```
+
+**For Nix users**
+
+Just `nix run` will suffice!
 

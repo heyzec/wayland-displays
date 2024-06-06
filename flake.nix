@@ -1,57 +1,66 @@
 {
-  description = "wayland-displays";
+  description = "Yet another wayland displays configurator";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, nixpkgs, ... }@inputs: let
-    system = "x86_64-linux";
-    pkgs = nixpkgs.legacyPackages.${system};
-  in {
-    devShells.${system}.default = pkgs.mkShell {
-      buildInputs = with pkgs; [
-        (runCommand "cDependencies" {} ''
-          mkdir -p $out/include
-
-          cp -r ${gtk3.dev}/include/gtk-3.0/* $out/include
-          cp -r ${glib.dev}/include/glib-2.0/* $out/include
-        '')
-        way-displays
-        wdisplays
-        nwg-displays
+  outputs = inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [
+        "x86_64-linux"
       ];
-      shellHook = ''
-        NIX_CFLAGS_COMPILE="$(pkg-config --cflags gtk4) $NIX_CFLAGS_COMPILE"
-      '';
-    };
+      perSystem = { config, self', inputs', pkgs, lib, system, ... }: {
 
-    packages.${system} = {
-      default = pkgs.stdenv.mkDerivation {
-        name = "app";
-        src = self;
-        buildInputs = with pkgs; [
-          libgcc
-          gtk3
-          pkg-config
-        ];
-        buildPhase = "g++ -o app src/main.cpp `pkg-config --cflags --libs gtk+-3.0`";
-        installPhase = "mkdir -p $out/bin; install -t $out/bin app";
+        devShells.default = pkgs.mkShell {
+          packages = with pkgs; [
+            way-displays
+            wdisplays
+            nwg-displays
+            kanshi
+          ] ++ config.packages.default.nativeBuildInputs ++ [
+            # Hack for LSPs to find headers
+            # Find using nix-locate <missing-header> | grep -v ^\(
+            (runCommand "cDependencies" { } ''
+              mkdir -p $out/include
+              cp -r ${gtk3.dev}/include/gtk-3.0/* $out/include
+              cp -r ${cairo.dev}/include/cairo/* $out/include
+
+              cp -r ${glib.dev}/include/glib-2.0/* $out/include
+              cp -r ${glib.out}/lib/glib-2.0/include/* $out/include
+
+              cp -r ${pango.dev}/include/pango-1.0/* $out/include
+              cp -r ${harfbuzz.dev}/include/harfbuzz/* $out/include
+              cp -r ${gdk-pixbuf.dev}/include/gdk-pixbuf-2.0/* $out/include
+              cp -r ${at-spi2-atk.dev}/include/atk-1.0/* $out/include
+            '')
+          ];
+        };
+
+        packages.default = pkgs.stdenv.mkDerivation {
+          name = "wayland-displays";
+
+          # Filtered list of source files
+          src = lib.sourceByRegex ./. [
+            "^src.*"
+            "CMakeLists.txt"
+            "^cmake.*"
+          ];
+
+          # Needed at compile time
+          nativeBuildInputs = with pkgs; [
+            # C++ Compiler is already part of stdenv
+            cmake
+            pkg-config
+            gtk3
+            cairo
+          ];
+
+          # Needed at run time
+          buildInputs = [ ];
+
+          doCheck = true;
+        };
       };
-
-      # nix -L build .#test
-      test = pkgs.testers.runNixOSTest ./tests/test.nix;
-      # checks.${system} = config.packages;
     };
-
-    nixosConfigurations = {
-      # The configuration for build-vm (home manager as a module)
-      "nixie-vm" = inputs.nixpkgs.lib.nixosSystem {
-        modules = [
-          ({ nixpkgs.hostPlatform = system; })
-          ({ programs.hyprland.enable = true; })
-        ];
-      };
-    };
-  };
 }
