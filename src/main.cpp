@@ -1,68 +1,74 @@
-#include <iostream>
-#include <string>
 #include <getopt.h>
+#include <string>
+
 #include "gui.cpp"
+#include "sandbox/sandbox.cpp"
 
 void print_usage() {
-    printf("Usage: my_program [options]\n");
-    printf("Options:\n");
-    printf("  -h, --help            Display this help message\n");
+  printf("Usage: my_program [options]\n");
+  printf("Options:\n");
+  printf("  -h, --help            Display this help message\n");
 }
 
 int main(int argc, char *argv[]) {
-    int opt;
-    int verbose_flag = 0;
-    char *output_file = NULL;
+  int opt;
+  int verbose_flag = 0;
+  char *output_file = NULL;
 
-    // Define long options
-    static struct option long_options[] = {
-        {"help",    no_argument,       0, 'h'},
-        {"gui",     no_argument,       0, 'g'},
-        {0,         0,                 0,  0 }
-    };
+  // Define long options
+  static struct option long_options[] = {
+      {"help", no_argument, 0, 'h'}, {"gui", no_argument, 0, 'g'}, {0, 0, 0, 0}};
 
-    while (1) {
-        int option_index = 0;
-        opt = getopt_long(argc, argv, "hg:", long_options, &option_index);
+  int n_opt = 0;
 
-        if (opt == -1) {
-            break; // No more options
-        }
+  while (1) {
+    int option_index = 0;
+    opt = getopt_long(argc, argv, "hg:", long_options, &option_index);
 
-        switch (opt) {
-            case 'h':
-                print_usage();
-                exit(0);
-            case 'g':
-                start_gui();
-                exit(1);
-            case '?':
-                // getopt_long already printed an error message
-                print_usage();
-                exit(1);
-            default:
-                print_usage();
-                exit(1);
-        }
+    if (opt == -1) {
+      break; // No more options
     }
+    n_opt++;
 
-    // Process any remaining arguments (not options)
-    if (optind < argc) {
-        printf("Non-option arguments: ");
-        while (optind < argc) {
-            printf("%s ", argv[optind++]);
-        }
-        printf("\n");
+    switch (opt) {
+    case 'h':
+      print_usage();
+      exit(0);
+    case 'g':
+      start_gui();
+      exit(1);
+    case '?':
+      // getopt_long already printed an error message
+      print_usage();
+      exit(1);
+    default:
+      print_usage();
+      exit(1);
     }
+  }
 
-    // Example usage of parsed options
-    if (verbose_flag) {
-        printf("Verbose mode enabled.\n");
-    }
-    if (output_file) {
-        printf("Output file: %s\n", output_file);
-    }
+  // If no arguments, run code sandbox
+  if (n_opt == 0) {
+    int status = sandbox();
+    exit(status);
+  }
 
-    return 0;
+  // Process any remaining arguments (not options)
+  if (optind < argc) {
+    printf("Non-option arguments: ");
+    while (optind < argc) {
+      printf("%s ", argv[optind++]);
+    }
+    printf("\n");
+  }
+
+  // Example usage of parsed options
+  if (verbose_flag) {
+    printf("Verbose mode enabled.\n");
+  }
+  if (output_file) {
+    printf("Output file: %s\n", output_file);
+  }
+
+  return 0;
 }
-

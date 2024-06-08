@@ -54,6 +54,7 @@
             pkg-config
             gtk3
             cairo
+            wayland
           ];
 
           # Needed at run time
