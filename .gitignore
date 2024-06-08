@@ -3,6 +3,8 @@
 
 # Build artifacts
 build/
+protocols/*.h
+protocols/*.c
 
 # Test artifacts
 result
