@@ -2,7 +2,7 @@
 #include <string>
 
 #include "gui.cpp"
-#include "sandbox/sandbox.cpp"
+#include "sandbox.cpp"
 
 void print_usage() {
   printf("Usage: my_program [options]\n");

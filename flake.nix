@@ -60,6 +60,7 @@
             cairo
             wayland
             wayland-scanner
+            nlohmann_json
           ];
 
           # Needed at run time
