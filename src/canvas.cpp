@@ -5,6 +5,8 @@
 
 using namespace std;
 
+const float CANVAS_FAC = 1.5;
+
 struct Box {
   float x;
   float y;
@@ -16,23 +18,26 @@ struct Box {
   }
 };
 
-struct Drag {
-  float start_x;
-  float start_y;
-  float delta_x;
-  float delta_y;
+
+/* Container to store dynamic state of canvas, will be passed around callbacks */
+struct CanvasState {
+  vector<struct Box> *boxes;
+
+  // Drag
+  float drag_start_x;
+  float drag_start_y;
+  float drag_delta_x;
+  float drag_delta_y;
+
+  int selected_box = -1; // -1 if no box held
+  float box_start_x;
+  float box_start_y;
 };
 
-struct CanvasState {
-  GtkWidget *canvas;
-  vector<struct Box> *boxes;
-  struct Drag *drag;
-  int selected_box = -1; // -1 if no box held
-};
+GtkWidget *canvas;
 
 gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data) {
   struct CanvasState *state = (struct CanvasState *)data;
-  struct Drag *drag = state->drag;
 
   GdkRGBA color;
   GtkStyleContext *context = gtk_widget_get_style_context(widget);
@@ -51,23 +56,19 @@ gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data) {
     Box *box = &state->boxes->at(i);
     float x = box->x;
     float y = box->y;
-    if (i == state->selected_box) {
-      x += drag->delta_x;
-      y += drag->delta_y;
-    }
 
-    cairo_rectangle(cr, x, y, box->width, box->height);
+    cairo_rectangle(cr, x * CANVAS_FAC, y * CANVAS_FAC, box->width * CANVAS_FAC, box->height * CANVAS_FAC);
     cairo_stroke_preserve(cr);
   }
 
   // Draw bounds of canvas for debugging
-    cairo_rectangle(cr, 0, 0, width, height);
-    cairo_stroke_preserve(cr);
+  cairo_rectangle(cr, 0, 0, width, height);
+  cairo_stroke_preserve(cr);
 
   // Draw a filled dot for debugging
   cairo_new_path(cr);
-  float x = drag->start_x + drag->delta_x;
-  float y = drag->start_y + drag->delta_y;
+  float x = state->drag_start_x + state->drag_delta_x;
+  float y = state->drag_start_y + state->drag_delta_y;
   cairo_arc(cr, x, y, 5, 0, 2 * G_PI); // 5 is the radius of the dot
   cairo_fill(cr);
 
@@ -85,52 +86,59 @@ void on_drag_start(GtkGestureDrag *drag, gdouble start_x, gdouble start_y, gpoin
   g_print("\nStart: (%f, %f)\n", start_x, start_y);
   struct CanvasState *state = (struct CanvasState *)data;
 
-  state->drag->start_x = start_x;
-  state->drag->start_y = start_y;
-  state->drag->delta_x = 0;
-  state->drag->delta_y = 0;
+  state->drag_start_x = start_x;
+  state->drag_start_y = start_y;
+  state->drag_delta_x = 0;
+  state->drag_delta_y = 0;
 
   for (int i = 0; i < state->boxes->size(); i++) {
     Box box = state->boxes->at(i);
-    if (box.within(start_x, start_y)) {
+    if (box.within(start_x / CANVAS_FAC, start_y / CANVAS_FAC)) {
       state->selected_box = i;
+      state->box_start_x = box.x;
+      state->box_start_y = box.y;
+      break;
     }
   }
 
-  queue_draw_area(state->canvas);
+  queue_draw_area(canvas);
 }
 
 void on_drag_update(GtkGestureDrag *drag, gdouble delta_x, gdouble delta_y, gpointer data) {
   g_print("Update: (%f, %f)\n", delta_x, delta_y);
   struct CanvasState *state = (struct CanvasState *)data;
 
-  state->drag->delta_x = delta_x;
-  state->drag->delta_y = delta_y;
+  state->drag_delta_x = delta_x;
+  state->drag_delta_y = delta_y;
 
-  queue_draw_area(state->canvas);
+  if (state->selected_box != -1) {
+    int canvas_width = gtk_widget_get_allocated_width(canvas);
+    int canvas_height = gtk_widget_get_allocated_height(canvas);
+
+    // Set new position of held box
+    Box *box = &state->boxes->at(state->selected_box);
+    float x = state->box_start_x + state->drag_delta_x / CANVAS_FAC;
+    float y = state->box_start_y + state->drag_delta_y / CANVAS_FAC;
+    // Clamp box to bounds of canvas
+    box->x = MIN(MAX(x, 0), canvas_width / CANVAS_FAC - box->width);
+    box->y = MIN(MAX(y, 0), canvas_height / CANVAS_FAC - box->height);
+  }
+
+  queue_draw_area(canvas);
 }
 
 void on_drag_end(GtkGestureDrag *drag, gdouble delta_x, gdouble delta_y, gpointer data) {
   g_print("End: (%f, %f)\n", delta_x, delta_y);
   struct CanvasState *state = (struct CanvasState *)data;
+  state->selected_box = -1;
 
-  if (state->selected_box != -1) {
-    // Set new position of held box
-    Box *box = &state->boxes->at(state->selected_box);
-    box->x += state->drag->delta_x;
-    box->y += state->drag->delta_y;
-    state->selected_box = -1;
-  }
-
-  queue_draw_area(state->canvas);
+  queue_draw_area(canvas);
 }
 
 GtkWidget *get_canvas(vector<Box> *boxes) {
-  GtkWidget *canvas = gtk_drawing_area_new();
+  canvas = gtk_drawing_area_new();
 
   struct CanvasState *state = new struct CanvasState;
-  state->drag = new struct Drag;
-  state->canvas = canvas;
   state->boxes = boxes;
 
   g_signal_connect(G_OBJECT(canvas), "draw", G_CALLBACK(draw_callback), state);
