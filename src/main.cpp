@@ -1,8 +1,9 @@
+#include "gui/gui.cpp"
+#include "sandbox.cpp"
+
 #include <getopt.h>
 #include <string>
 
-#include "gui.cpp"
-#include "sandbox.cpp"
 
 void print_usage() {
   printf("Usage: my_program [options]\n");
