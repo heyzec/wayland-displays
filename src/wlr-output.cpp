@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstring>
 #include <iostream>
 #include <ostream>
@@ -10,6 +12,8 @@
 
 
 typedef int32_t fixed24_8;
+
+struct wl_display *display;
 
 // ============================================================
 // Handlers and listeners for zwlr_output_mode
@@ -184,7 +188,7 @@ static const struct wl_registry_listener registry_listener = {
 
 void wlr_output_init(std::vector<struct Display> *displays) {
   // Connect to compositor and get the Wayland display singleton
-  struct wl_display *display = wl_display_connect(NULL);
+  display = wl_display_connect(NULL);
   if (!display) {
     fprintf(stderr, "Failed to connect to Wayland display.\n");
     exit(1);
@@ -206,13 +210,16 @@ void wlr_output_init(std::vector<struct Display> *displays) {
   // Block until all pending requests/events are sent/received and all listeners executed:
   // - Handle global events (globals available on this compositor)
   wl_display_roundtrip(display);
-
-
-  // while (wl_display_dispatch(display) != -1) {
-  //   /* This space deliberately left blank */
-  // }
-
-  wl_display_disconnect(display);
-  return;
 }
 
+void wlr_output_cleanup() {
+  wl_display_disconnect(display);
+}
+
+/* Momentarily connect to compositor to get display info */
+std::vector<struct Display> get_displays() {
+  auto displays = std::vector<struct Display>{};
+  wlr_output_init(&displays);
+  wlr_output_cleanup();
+  return displays;
+}

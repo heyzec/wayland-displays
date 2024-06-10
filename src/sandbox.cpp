@@ -1,4 +1,5 @@
 #include "wlr-output.cpp"
+#include "wlr-output-management-unstable-v1.h"
 #include <nlohmann/json.hpp>
 
 int sandbox() {
@@ -11,5 +12,6 @@ int sandbox() {
     std::cout << j.dump(4) << std::endl;
   }
 
+  wlr_output_cleanup();
   return 0;
 }

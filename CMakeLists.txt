@@ -5,7 +5,10 @@ project(wayland-displays VERSION 1.0 LANGUAGES C CXX)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-add_executable(wayland-displays protocols/wlr-output-management-unstable-v1.c src/main.cpp)
+add_executable(wayland-displays
+    protocols/wlr-output-management-unstable-v1.c
+    src/gui/canvas.cpp
+    src/main.cpp)
 
 include_directories(
   .

@@ -1,16 +1,128 @@
-#include "canvas.cpp"
+#pragma once
+
+#include "wlr-output.cpp"
+#include "canvas.hpp"
+#include "display.cpp"
+
 #include <gtk/gtk.h>
 #include <vector>
 
 using namespace std;
 
+/* Attributes of displays, source of truth */
+vector<Display> displays = vector<Display>{Display{}};
+
+CanvasState *canvas_state = new struct CanvasState;
+
+GtkSpinButton *position_x_entry;
+GtkSpinButton *position_y_entry;
+GtkSpinButton *size_x_entry;
+GtkSpinButton *size_y_entry;
+GtkSpinButton *dpi_button;
+GtkSpinButton *rate_button;
+// GtkWidget *transform_button;
+
+int selected_display = 0;
+
+// ============================================================
+// Functions to pass data to and from the canvas
+// ============================================================
+
+vector<Box> create_boxes_from_displays(vector<Display> displays) {
+  auto boxes = vector<Box>();
+  for (auto display : displays) {
+    Box box = Box{};
+    box.x = display.pos_x;
+    box.y = display.pos_y;
+    box.width = display.width;
+    box.height = display.height;
+    boxes.push_back(box);
+  }
+  return boxes;
+}
+
+void update_displays_from_boxes(vector<Display> *displays, const CanvasState canvas_state) {
+  vector<Box> boxes = canvas_state.boxes;
+
+  selected_display = canvas_state.selected_box;
+
+  if (displays->size() != boxes.size()) {
+    printf("Vector sizes do not match!\n");
+    return;
+  }
+
+  for (int i = 0; i < boxes.size(); i++) {
+    Box box = boxes.at(i);
+    Display *display = &displays->at(i);
+    display->pos_x = box.x;
+    display->pos_y = box.y;
+  }
+}
+
+void update_canvas() {
+  canvas_state->boxes = create_boxes_from_displays(displays);
+  redraw_canvas();
+}
+
+// ============================================================
+// Set and get values (with callbacks attached to GUI elements)
+// ============================================================
+
+void update_selected_display() {
+  if (selected_display == -1) {
+    return;
+  }
+  gtk_spin_button_set_value(position_x_entry, displays.at(selected_display).pos_x);
+  gtk_spin_button_set_value(position_y_entry, displays.at(selected_display).pos_y);
+  gtk_spin_button_set_value(size_x_entry, displays.at(selected_display).width);
+  gtk_spin_button_set_value(size_y_entry, displays.at(selected_display).height);
+  // gtk_spin_button_set_value(dpi_button, displays.at(0).dpi);
+}
+
+void on_position_x_changed(GtkSpinButton *position_x_entry) {
+  if (selected_display != -1) {
+    displays.at(selected_display).pos_x = gtk_spin_button_get_value(position_x_entry);
+    update_canvas();
+  }
+}
+void on_position_y_changed(GtkSpinButton *position_y_entry) {
+  if (selected_display != -1) {
+    displays.at(selected_display).pos_y = gtk_spin_button_get_value(position_y_entry);
+    update_canvas();
+  }
+}
+void on_size_x_changed(GtkSpinButton *size_x_entry) {
+  if (selected_display != -1) {
+    displays.at(selected_display).width = gtk_spin_button_get_value(size_x_entry);
+    update_canvas();
+  }
+}
+void on_size_y_changed(GtkSpinButton *size_y_entry) {
+  if (selected_display != -1) {
+    displays.at(selected_display).height = gtk_spin_button_get_value(size_y_entry);
+    update_canvas();
+  }
+}
+void on_dpi_changed(GtkSpinButton *dpi_button) {
+  // if (selected_display != -1) {
+  //   displays.at(selected_display).pos_x  = gtk_spin_button_get_value(dpi_button);
+  //   update_canvas();
+  // }
+}
+void on_rate_changed(GtkSpinButton *rate_button) {
+  // if (selected_display != -1) {
+  //   displays.at(selected_display).pos_x = gtk_spin_button_get_value(rate_button);
+  //   update_canvas();
+  // }
+}
+
+// ============================================================
+// App layout
+// ============================================================
+
 GtkWidget *get_top_pane() {
-  // Mock data
-  vector<Box> *boxes = new vector<Box>{{100, 100, 100, 100}, {200, 200, 100, 100}};
-
-  GtkWidget *canvas = get_canvas(boxes);
+  GtkWidget *canvas = get_canvas(canvas_state);
   gtk_widget_set_size_request(canvas, 400, 400); // Set a size for visibility?
-
   return canvas;
 }
 
@@ -27,30 +139,36 @@ GtkWidget *get_bottom_pane() {
   // Position X and Y
   GtkWidget *position_label = gtk_label_new("Position:");
   gtk_grid_attach(GTK_GRID(grid), position_label, 0, 0, 1, 1);
-  GtkSpinButton *position_x_entry = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(0, 100, 1));
-  GtkSpinButton *position_y_entry = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(0, 100, 1));
+  position_x_entry = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(0, 10000, 1));
+  position_y_entry = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(0, 10000, 1));
   gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(position_x_entry), 1, 0, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(position_y_entry), 2, 0, 1, 1);
+  g_signal_connect(G_OBJECT(position_x_entry), "value-changed", G_CALLBACK(on_position_x_changed), NULL);
+  g_signal_connect(G_OBJECT(position_y_entry), "value-changed", G_CALLBACK(on_position_y_changed), NULL);
 
   // Size
   GtkWidget *size_label = gtk_label_new("Size:");
   gtk_grid_attach(GTK_GRID(grid), size_label, 0, 1, 1, 1);
-  GtkSpinButton *size_x_entry = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(0, 100, 1));
-  GtkSpinButton *size_y_entry = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(0, 100, 1));
+  size_x_entry = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(0, 10000, 1));
+  size_y_entry = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(0, 10000, 1));
   gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(size_x_entry), 1, 1, 1, 1);
   gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(size_y_entry), 2, 1, 1, 1);
+  g_signal_connect(G_OBJECT(size_x_entry), "value-changed", G_CALLBACK(on_size_x_changed), NULL);
+  g_signal_connect(G_OBJECT(size_y_entry), "value-changed", G_CALLBACK(on_size_y_changed), NULL);
 
   // DPI Scale
   GtkWidget *dpi_label = gtk_label_new("DPI Scale:");
   gtk_grid_attach(GTK_GRID(grid), dpi_label, 0, 2, 1, 1);
-  GtkSpinButton *dpi_button = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(0, 100, 0.1));
+  dpi_button = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(0, 100, 0.1));
   gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(dpi_button), 1, 2, 1, 1);
+  g_signal_connect(G_OBJECT(dpi_button), "value-changed", G_CALLBACK(on_dpi_changed), NULL);
 
   // Refresh Rate
   GtkWidget *rate_label = gtk_label_new("Refresh rate:");
   gtk_grid_attach(GTK_GRID(grid), rate_label, 0, 3, 1, 1);
-  GtkSpinButton *rate_button = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(0, 1000, 1));
+  rate_button = GTK_SPIN_BUTTON(gtk_spin_button_new_with_range(0, 1000, 1));
   gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(rate_button), 1, 3, 1, 1);
+  g_signal_connect(G_OBJECT(rate_button), "value-changed", G_CALLBACK(on_rate_changed), NULL);
 
   // Transformations
   GtkWidget *transform_label = gtk_label_new("Transform:");
@@ -114,9 +232,26 @@ GtkWidget *get_window() {
   return window;
 }
 
-void start_gui() {
+// ============================================================
+// Entry Point
+// ============================================================
+
+void run_gui() {
+  vector<Display> displays_ = get_displays();
+  displays = displays_; // Create a copy
+
+  auto on_canvas_updated = [](const CanvasState canvas_state) {
+    update_displays_from_boxes(&displays, canvas_state);
+    update_selected_display();
+  };
+
+  canvas_state->boxes = create_boxes_from_displays(displays);
+  attach_canvas_updated_callback(on_canvas_updated);
   gtk_init(NULL, NULL); // NULL, NULL instead of argc, argv
   GtkWidget *window = get_window();
+
+  update_selected_display();
+
   gtk_widget_show_all(window);
   gtk_main();
 }

@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
       print_usage();
       exit(0);
     case 'g':
-      start_gui();
+      run_gui();
       exit(1);
     case '?':
       // getopt_long already printed an error message
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 
   // If no arguments, run code sandbox
   if (n_opt == 0) {
-    int status = sandbox();
+      int status = sandbox();
     exit(status);
   }
 
