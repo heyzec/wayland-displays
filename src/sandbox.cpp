@@ -1,4 +1,4 @@
-#include "wlr-output.cpp"
+#include "wlr_output.cpp"
 #include "wlr-output-management-unstable-v1.h"
 #include <nlohmann/json.hpp>
 

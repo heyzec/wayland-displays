@@ -8,6 +8,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 add_executable(wayland-displays
     protocols/wlr-output-management-unstable-v1.c
     src/gui/canvas.cpp
+    src/wlr_output/head.cpp
+    src/wlr_output/mode.cpp
+    src/display.cpp
     src/main.cpp)
 
 include_directories(

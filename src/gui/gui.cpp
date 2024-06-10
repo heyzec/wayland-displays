@@ -1,8 +1,8 @@
 #pragma once
 
-#include "wlr-output.cpp"
+#include "wlr_output.cpp"
 #include "canvas.hpp"
-#include "display.cpp"
+#include "display.hpp"
 
 #include <gtk/gtk.h>
 #include <vector>
