@@ -89,7 +89,7 @@ static const struct wl_registry_listener registry_listener = {
 };
 
 // ============================================================
-// Entry point
+// Setup and teardown of connection to compositor
 // ============================================================
 
 void wlr_output_init() {
@@ -123,12 +123,49 @@ void wlr_output_init() {
   // Block until all pending requests/events are sent/received and all listeners executed:
   // - Handle global events (globals available on this compositor)
   wl_display_roundtrip(display);
-
-  // printf("Length %d\n", wl_list_length(&state.heads));
 }
 
-void wlr_output_cleanup() {
+void wlr_output_deinit() {
   wl_display_disconnect(state->display);
+}
+
+// ============================================================
+// Wrapper functions for encapsulating wl_display
+// ============================================================
+
+int get_wl_display_fd() {
+  return wl_display_get_fd(state->display);
+}
+
+void prepare_dispatch_events() {
+  // See Wayland Protocol docs Appendix B wl_display_prepare_read_queue
+
+  // Prepare to read events from the display's file descriptor
+  // This function must be called before using wl_display_read_events()
+  // It ensures in the meantime no other thread will read from the file descriptor
+  while (wl_display_prepare_read(state->display) != 0) {
+    // Dispatch default queue events without reading from the display fd
+    wl_display_dispatch_pending(state->display);
+  }
+  // Send all buffered requests on the display to the server
+  wl_display_flush(state->display);
+}
+
+void dispatch_events() {
+  // See Wayland Protocol docs Appendix B wl_display_prepare_read_queue
+
+  // Read events from display file descriptor
+  wl_display_read_events(state->display);
+  // Dispatch default queue events without reading from the display fd
+  wl_display_dispatch_pending(state->display);
+}
+
+void cancel_dispatch_events() {
+  // See Wayland Protocol docs Appendix B wl_display_prepare_read_queue
+
+  // Cancel read intention on display's fd
+  // If the threads do not follow this rule it will lead to deadlock
+  wl_display_cancel_read(state->display);
 }
 
 /* Momentarily connect to compositor to get display info */

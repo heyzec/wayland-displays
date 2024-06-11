@@ -1,5 +1,6 @@
 #include "gui/gui.cpp"
 #include "sandbox.cpp"
+#include "server/server.cpp"
 
 #include <getopt.h>
 #include <string>
@@ -18,13 +19,17 @@ int main(int argc, char *argv[]) {
 
   // Define long options
   static struct option long_options[] = {
-      {"help", no_argument, 0, 'h'}, {"gui", no_argument, 0, 'g'}, {0, 0, 0, 0}};
+    {"help", no_argument, 0, 'h'},
+    {"server", no_argument, 0, 's'},
+    {"gui", no_argument, 0, 'g'},
+    {0, 0, 0, 0}
+  };
 
   int n_opt = 0;
 
   while (1) {
     int option_index = 0;
-    opt = getopt_long(argc, argv, "hg:", long_options, &option_index);
+    opt = getopt_long(argc, argv, "hsg", long_options, &option_index);
 
     if (opt == -1) {
       break; // No more options
@@ -35,6 +40,9 @@ int main(int argc, char *argv[]) {
     case 'h':
       print_usage();
       exit(0);
+    case 's':
+      run_server();
+      exit(1);
     case 'g':
       run_gui();
       exit(1);

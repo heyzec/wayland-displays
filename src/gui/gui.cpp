@@ -120,10 +120,6 @@ void on_rate_changed(GtkSpinButton *rate_button) {
 }
 
 void on_apply_clicked(GtkButton *apply_button) {
-  // if (selected_display != -1) {
-  //   displays.at(selected_display).pos_x = gtk_spin_button_get_value(rate_button);
-  //   update_canvas();
-  // }
   apply_configurations(displays);
 }
 
