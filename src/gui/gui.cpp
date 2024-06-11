@@ -3,11 +3,14 @@
 #include "wlr_output.cpp"
 #include "canvas.hpp"
 #include "display.hpp"
+#include "wlr_output/shapes.hpp"
 
 #include <gtk/gtk.h>
 #include <vector>
 
 using namespace std;
+
+typedef HeadDyanamicInfo Display;
 
 /* Attributes of displays, source of truth */
 vector<Display> displays = vector<Display>{Display{}};
@@ -34,8 +37,8 @@ vector<Box> create_boxes_from_displays(vector<Display> displays) {
     Box box = Box{};
     box.x = display.pos_x;
     box.y = display.pos_y;
-    box.width = display.width;
-    box.height = display.height;
+    box.width = display.size_x;
+    box.height = display.size_y;
     boxes.push_back(box);
   }
   return boxes;
@@ -74,9 +77,9 @@ void update_selected_display() {
   }
   gtk_spin_button_set_value(position_x_entry, displays.at(selected_display).pos_x);
   gtk_spin_button_set_value(position_y_entry, displays.at(selected_display).pos_y);
-  gtk_spin_button_set_value(size_x_entry, displays.at(selected_display).width);
-  gtk_spin_button_set_value(size_y_entry, displays.at(selected_display).height);
-  // gtk_spin_button_set_value(dpi_button, displays.at(0).dpi);
+  gtk_spin_button_set_value(size_x_entry, displays.at(selected_display).size_x);
+  gtk_spin_button_set_value(size_y_entry, displays.at(selected_display).size_y);
+  gtk_spin_button_set_value(dpi_button, displays.at(selected_display).rate);
 }
 
 void on_position_x_changed(GtkSpinButton *position_x_entry) {
@@ -93,13 +96,13 @@ void on_position_y_changed(GtkSpinButton *position_y_entry) {
 }
 void on_size_x_changed(GtkSpinButton *size_x_entry) {
   if (selected_display != -1) {
-    displays.at(selected_display).width = gtk_spin_button_get_value(size_x_entry);
+    displays.at(selected_display).size_x = gtk_spin_button_get_value(size_x_entry);
     update_canvas();
   }
 }
 void on_size_y_changed(GtkSpinButton *size_y_entry) {
   if (selected_display != -1) {
-    displays.at(selected_display).height = gtk_spin_button_get_value(size_y_entry);
+    displays.at(selected_display).size_y = gtk_spin_button_get_value(size_y_entry);
     update_canvas();
   }
 }
@@ -114,6 +117,14 @@ void on_rate_changed(GtkSpinButton *rate_button) {
   //   displays.at(selected_display).pos_x = gtk_spin_button_get_value(rate_button);
   //   update_canvas();
   // }
+}
+
+void on_apply_clicked(GtkButton *apply_button) {
+  // if (selected_display != -1) {
+  //   displays.at(selected_display).pos_x = gtk_spin_button_get_value(rate_button);
+  //   update_canvas();
+  // }
+  apply_configurations(displays);
 }
 
 // ============================================================
@@ -175,6 +186,13 @@ GtkWidget *get_bottom_pane() {
   gtk_grid_attach(GTK_GRID(grid), transform_label, 0, 4, 1, 1);
   GtkWidget *transform_button = gtk_menu_button_new();
   gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(transform_button), 1, 4, 1, 1);
+
+  GtkWidget *apply_label = gtk_label_new("Apply!");
+  gtk_grid_attach(GTK_GRID(grid), apply_label, 0, 5, 1, 1);
+  GtkWidget *apply_button = gtk_button_new();
+  gtk_grid_attach(GTK_GRID(grid), GTK_WIDGET(apply_button), 1, 5, 1, 1);
+  g_signal_connect(G_OBJECT(apply_button), "clicked", G_CALLBACK(on_apply_clicked), NULL);
+
   // These APIs are deprecated!
   GMenu *menu = g_menu_new();
   g_menu_append(menu, "Normal", "app.new");

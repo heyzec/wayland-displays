@@ -2,6 +2,7 @@
  * Handlers and listeners for zwlr_output_head
  * https://wayland.app/protocols/wlr-output-management-unstable-v1#zwlr_output_head_v1
  */
+#include "wlr_output/shapes.hpp"
 #include "wlr_output/head.hpp"
 #include "wlr_output/mode.hpp"
 #include "display.hpp"
@@ -9,67 +10,80 @@
 
 typedef int32_t fixed24_8;
 
-static void name(void *data, struct zwlr_output_head_v1 *head, const char *name) {
-  auto *display = (struct Display *) data;
-  display->name = name;
+static void name(void *data, struct zwlr_output_head_v1 *wlr_head, const char *name) {
+  auto head = (Head *) data;
+  head->info.name = strdup(name);
 }
 
-static void description(void *data, struct zwlr_output_head_v1 *head, const char *description) {
-  auto *display = (struct Display *) data;
-  display->description = description;
+static void description(void *data, struct zwlr_output_head_v1 *wlr_head, const char *description) {
+  auto head = (Head *) data;
+  // head->info.description = description;
 }
 
-static void physical_size(void *data, struct zwlr_output_head_v1 *head, const int32_t width,
+static void physical_size(void *data, struct zwlr_output_head_v1 *wlr_head, const int32_t width,
                           const int32_t height) {
-  auto *display = (struct Display *) data;
-  display->width = width;
-  display->height = height;
+  auto head = (Head *) data;
+  // display->width = width;
+  // display->height = height;
 }
 
-static void mode(void *data, struct zwlr_output_head_v1 *head, zwlr_output_mode_v1 *wl_mode) {
-  auto *display = (struct Display *) data;
-  int index = display->modes.size();
-  display->modes.push_back(Mode{});
-  zwlr_output_mode_v1_add_listener(wl_mode, get_mode_listener(), &display->modes.at(index));
+static void mode(void *data, struct zwlr_output_head_v1 *wlr_head, zwlr_output_mode_v1 *wlr_mode) {
+  // We need to store the zwlr_output_mode_v1 objects in order to determine which mode is current
+  auto head = (Head *) data;
+  int index = head->modes.size();
+  Mode mode = Mode{};
+  mode.wlr_mode = wlr_mode;
+  head->modes.push_back(mode);
+  zwlr_output_mode_v1_add_listener(wlr_mode, get_mode_listener(), &head->modes.at(index));
 }
 
-static void enabled(void *data, struct zwlr_output_head_v1 *head, const int32_t enabled) {
-  auto *display = (struct Display *) data;
-  display->enabled = enabled;
+static void enabled(void *data, struct zwlr_output_head_v1 *wlr_head, const int32_t enabled) {
+  auto head = (Head *) data;
+  head->info.enabled = enabled;
 }
 
-static void current_mode(void *data, struct zwlr_output_head_v1 *head, zwlr_output_mode_v1 *mode) {
-  // TODO: We need to store the zwlr_output_mode_v1 objects in order to determine which mode is current
-  // zwlr_output_mode_v1_add_listener(mode, &mode_listener, NULL);
+static void current_mode(void *data, struct zwlr_output_head_v1 *wlr_head, zwlr_output_mode_v1 *wlr_mode) {
+  // TODO: This function relies on the mode events occuring before the current_mode event,
+  // which the protocol actually does not specify as a requirement!
+  auto head = (Head *) data;
+  for (Mode mode : head->modes) {
+    if (mode.wlr_mode == wlr_mode) {
+      head->info.size_x = mode.size_x;
+      head->info.size_y = mode.size_y;
+      head->info.rate = mode.rate;
+      break;
+    }
+  }
 }
 
-static void position(void *data, struct zwlr_output_head_v1 *head, const int32_t x, const int32_t y) {
-  auto *display = (struct Display *) data;
-  display->pos_x = x;
-  display->pos_y = y;
+static void position(void *data, struct zwlr_output_head_v1 *wlr_head, const int32_t x, const int32_t y) {
+  auto head = (Head *) data;
+  head->info.pos_x = x;
+  head->info.pos_y = y;
 }
 
 static void transform(void *data, struct zwlr_output_head_v1 *head, const int32_t transform) {
   printf("Transform: %d\n", transform);
 }
 
-static void scale(void *data, struct zwlr_output_head_v1 *head, const fixed24_8 scale) {
-  printf("Scale: %d\n", scale);
+static void scale(void *data, struct zwlr_output_head_v1 *wlr_head, const fixed24_8 scale) {
+  auto head = (Head *) data;
+  head->info.scale = scale;
 }
 
 static void make(void *data, struct zwlr_output_head_v1 *head, const char *make) {
-  auto *display = (struct Display *) data;
-  display->make = make;
+  // auto *display = (struct Display *) data;
+  // display->make = make;
 }
 
 static void model(void *data, struct zwlr_output_head_v1 *head, const char *model) {
-  auto *display = (struct Display *) data;
-  display->model = model;
+  // auto *display = (struct Display *) data;
+  // display->model = model;
 }
 
 static void serial_number(void *data, struct zwlr_output_head_v1 *head, const char *serial_number) {
-  auto *display = (struct Display *) data;
-  display->serial_number = serial_number;
+  // auto *display = (struct Display *) data;
+  // display->serial_number = serial_number;
 }
 
 static void adaptive_sync(void *data, struct zwlr_output_head_v1 *head, uint adaptive_sync) {
