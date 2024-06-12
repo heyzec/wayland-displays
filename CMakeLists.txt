@@ -10,6 +10,7 @@ add_executable(wayland-displays
     src/wlr_output/head.cpp
     src/wlr_output/config.cpp
     src/wlr_output/mode.cpp
+    src/utils/fixed24_8.cpp
     src/display.cpp
     src/main.cpp)
 

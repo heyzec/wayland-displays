@@ -6,9 +6,10 @@
 #include "wlr_output/head.hpp"
 #include "wlr_output/mode.hpp"
 #include "display.hpp"
+#include "utils/fixed24_8.hpp"
 #include "wlr-output-management-unstable-v1.h"
+#include <wayland-client-protocol.h>
 
-typedef int32_t fixed24_8;
 
 static void name(void *data, struct zwlr_output_head_v1 *wlr_head, const char *name) {
   auto head = (Head *) data;
@@ -17,14 +18,14 @@ static void name(void *data, struct zwlr_output_head_v1 *wlr_head, const char *n
 
 static void description(void *data, struct zwlr_output_head_v1 *wlr_head, const char *description) {
   auto head = (Head *) data;
-  // head->info.description = description;
+  head->info.description = strdup(description);
 }
 
 static void physical_size(void *data, struct zwlr_output_head_v1 *wlr_head, const int32_t width,
                           const int32_t height) {
   auto head = (Head *) data;
-  // display->width = width;
-  // display->height = height;
+  head->info.phy_x = width;
+  head->info.phy_y = height;
 }
 
 static void mode(void *data, struct zwlr_output_head_v1 *wlr_head, zwlr_output_mode_v1 *wlr_mode) {
@@ -62,13 +63,15 @@ static void position(void *data, struct zwlr_output_head_v1 *wlr_head, const int
   head->info.pos_y = y;
 }
 
-static void transform(void *data, struct zwlr_output_head_v1 *head, const int32_t transform) {
-  printf("Transform: %d\n", transform);
+static void transform(void *data, struct zwlr_output_head_v1 *wlr_head, const int32_t transform) {
+  auto head = (Head *) data;
+  head->info.transform = transform;
 }
 
 static void scale(void *data, struct zwlr_output_head_v1 *wlr_head, const fixed24_8 scale) {
   auto head = (Head *) data;
-  head->info.scale = scale;
+  head->info.scale = fixed_to_float(scale);
+  printf("Scale %f\n", fixed_to_float(scale));
 }
 
 static void make(void *data, struct zwlr_output_head_v1 *head, const char *make) {

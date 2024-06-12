@@ -3,6 +3,7 @@
 #include "wlr_output/head.hpp"
 #include "wlr_output/config.hpp"
 #include "wlr_output/shapes.hpp"
+#include "utils/fixed24_8.hpp"
 
 #include "wlr-output-management-unstable-v1.h"
 #include <wayland-client-protocol.h>
@@ -169,8 +170,8 @@ void cancel_dispatch_events() {
 }
 
 /* Momentarily connect to compositor to get display info */
-std::vector<HeadDyanamicInfo> get_displays() {
-  auto displays = std::vector<HeadDyanamicInfo>{};
+std::vector<HeadAllInfo> get_displays() {
+  auto displays = std::vector<HeadAllInfo>{};
   wlr_output_init();
 
   for (auto head : state->heads) {
@@ -193,14 +194,20 @@ void apply_configurations(std::vector<HeadDyanamicInfo> configs) {
   for (HeadDyanamicInfo config : configs) {
     for (Head head : state->heads) {
       if (config.name == head.info.name) {
+        if (!config.enabled) {
+          zwlr_output_configuration_v1_disable_head(zwlr_config, head.wlr_head);
+          break;
+        }
+
         zwlr_output_configuration_head_v1 *config_head = zwlr_output_configuration_v1_enable_head(zwlr_config, head.wlr_head);
 
         zwlr_output_configuration_head_v1_set_position(config_head, config.pos_x, config.pos_y);
-        zwlr_output_configuration_head_v1_set_custom_mode(config_head, config.size_x, config.size_y, 60);
-        // zwlr_output_configuration_head_v1_set_scale(config_head, 2);
-        // zwlr_output_configuration_head_v1_set_transform(config_head, WL_OUTPUT_TRANSFORM_NORMAL);
+        zwlr_output_configuration_head_v1_set_custom_mode(config_head, config.size_x, config.size_y, (int) config.rate);
+        zwlr_output_configuration_head_v1_set_scale(config_head, float_to_fixed(config.scale));
+        zwlr_output_configuration_head_v1_set_transform(config_head, config.transform);
 
-        printf("Setting %s: (%d,%d) %dx%d\n", config.name, config.pos_x, config.pos_y, config.size_x, config.size_y);
+        printf("Setting %s: Position (%d,%d) Size %dx%d Scale %f Rate %d Transform %d\n",
+               config.name, config.pos_x, config.pos_y, config.size_x, config.size_y, config.scale, config.rate, config.transform);
         break;
       }
     }

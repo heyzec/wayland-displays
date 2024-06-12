@@ -22,7 +22,8 @@ struct HeadDyanamicInfo {
   bool enabled;
   int pos_x;
   int pos_y;
-  int scale;
+  float scale;
+  int transform;
 
   // Properties of the current mode
   int size_x;
@@ -30,8 +31,18 @@ struct HeadDyanamicInfo {
   int rate;
 };
 
+struct HeadAllInfo : HeadDyanamicInfo {
+  char *description;
+
+  int phy_x;
+  int phy_y;
+};
+
 struct Head {
   zwlr_output_head_v1 *wlr_head;
   std::vector<Mode> modes;
-  HeadDyanamicInfo info;
+  HeadAllInfo info;
 };
+
+typedef HeadAllInfo Display;
+// typedef HeadDyanamicInfo Display;

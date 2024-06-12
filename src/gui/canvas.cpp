@@ -7,7 +7,7 @@
 
 using namespace std;
 
-const float CANVAS_FAC = 0.3;
+const float CANVAS_FAC = 0.2;
 
 GtkWidget *canvas;
 void (*on_canvas_updated)(CanvasState);
