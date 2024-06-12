@@ -14,6 +14,10 @@
 
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
+            # Create .ui files
+            glade
+
+            # Experiment with existing tools
             way-displays
             wdisplays
             nwg-displays
@@ -45,10 +49,11 @@
 
           # Filtered list of source files
           src = lib.sourceByRegex ./. [
-            "^src.*"
             "CMakeLists.txt"
+            "^src.*"
             "^cmake.*"
             "^protocols.*"
+            "^resources.*"
           ];
 
           # Needed at compile time

@@ -1,0 +1,5 @@
+<gresources>
+  <gresource prefix="/com/heyzec/wayland-displays">
+  <file>layout.ui</file>
+  </gresource>
+</gresources>

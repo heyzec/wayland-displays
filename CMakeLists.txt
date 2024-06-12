@@ -80,6 +80,35 @@ target_link_libraries(wayland-displays generate-protocol-sources)
 
 
 ########################################
+# Generate resources
+########################################
+
+add_custom_target(generate-resources)
+add_dependencies(wayland-displays generate-resources)
+
+# Add the resources
+set(RESOURCE_XML ${CMAKE_SOURCE_DIR}/resources/resources.xml)
+set(RESOURCE_OUT ${CMAKE_BINARY_DIR}/resources)
+file(MAKE_DIRECTORY ${RESOURCE_OUT})
+set(RESOURCE_C ${RESOURCE_OUT}/resources.c)
+
+# Custom command to compile the resources
+add_custom_command(
+    OUTPUT ${RESOURCE_C}
+    COMMAND glib-compile-resources --target=${RESOURCE_C} --generate-source ${RESOURCE_XML}
+    DEPENDS ${RESOURCE_XML} ${CMAKE_SOURCE_DIR}/resources/layout.ui
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/resources
+    COMMENT "Compiling resources"
+)
+
+add_library(generate-resources-sources STATIC ${RESOURCE_C})
+
+include_directories(wayland-displays PRIVATE ${RESOURCE_OUT})
+
+target_link_libraries(wayland-displays generate-resources-sources)
+
+
+########################################
 # Install
 ########################################
 
@@ -89,3 +118,5 @@ install(TARGETS wayland-displays DESTINATION bin)
 install(DIRECTORY ${PROTO_OUT}/
         DESTINATION include
         FILES_MATCHING PATTERN "*.h")
+    install(FILES ${RESOURCE_OUT}/resources.c
+        DESTINATION include)
