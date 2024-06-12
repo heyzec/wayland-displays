@@ -34,8 +34,8 @@
               cp -r ${gdk-pixbuf.dev}/include/gdk-pixbuf-2.0/* $out/include
               cp -r ${at-spi2-atk.dev}/include/atk-1.0/* $out/include
 
-              # Hackier hack: Include generated headers that are git staged
-              cp $src/protocols/* $out/include || true
+              # Hackier hack: Include generated headers from build process
+              cp ${config.packages.default.out}/include/* $out/include
             '')
           ];
         };

@@ -6,7 +6,6 @@ project(wayland-displays VERSION 1.0 LANGUAGES C CXX)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 add_executable(wayland-displays
-    protocols/wlr-output-management-unstable-v1.c
     src/gui/canvas.cpp
     src/wlr_output/head.cpp
     src/wlr_output/config.cpp
@@ -14,10 +13,8 @@ add_executable(wayland-displays
     src/display.cpp
     src/main.cpp)
 
-include_directories(
-  .
-  "protocols/"
-  "src/")
+# Add the main source of headers
+include_directories("src/")
 
 ########################################
 # Dependencies
@@ -42,33 +39,53 @@ target_link_libraries(wayland-displays ${WAYLAND_LIBRARIES})
 # Generated protocols
 ########################################
 
+add_custom_target(generate-protocol)
+add_dependencies(wayland-displays generate-protocol)
+
+set(PROTO_SRC ${CMAKE_SOURCE_DIR}/protocols)
+set(PROTO_OUT ${CMAKE_BINARY_DIR}/protocols)
+
+# Find wayland-scanner binary
 pkg_get_variable(WaylandScanner wayland-scanner wayland_scanner)
 
-add_custom_target(generate-protocol-headers)
+function(add_protocol protoName)
+    file(MAKE_DIRECTORY ${PROTO_OUT})
+    set(PROTOCOL_H ${PROTO_OUT}/${protoName}.h)
+    set(PROTOCOL_C ${PROTO_OUT}/${protoName}.c)
 
-function(protocol protoName)
-    set(path ${CMAKE_SOURCE_DIR}/protocols)
-
+    # Generate header and source files
     add_custom_command(
-        OUTPUT ${CMAKE_SOURCE_DIR}/protocols/${protoName}.h
-        COMMAND wayland-scanner client-header ${path}/${protoName}.xml protocols/${protoName}.h
+        OUTPUT ${PROTOCOL_H}
+        COMMAND wayland-scanner client-header ${PROTO_SRC}/${protoName}.xml ${PROTOCOL_H}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
     add_custom_command(
-        OUTPUT ${CMAKE_SOURCE_DIR}/protocols/${protoName}.c
-        COMMAND wayland-scanner private-code ${path}/${protoName}.xml protocols/${protoName}.c
+        OUTPUT ${PROTOCOL_C}
+        COMMAND wayland-scanner private-code ${PROTO_SRC}/${protoName}.xml ${PROTOCOL_C}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
-    target_sources(generate-protocol-headers PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}.h)
-    target_sources(wayland-displays PRIVATE ${CMAKE_SOURCE_DIR}/protocols/${protoName}.h)
+
+    target_sources(generate-protocol PRIVATE ${PROTOCOL_H})
+
+    add_library(generate-protocol-sources STATIC ${PROTOCOL_C})
 endfunction()
 
-protocol("wlr-output-management-unstable-v1")
+# Add all needed protocols here
+add_protocol("wlr-output-management-unstable-v1")
 
-add_dependencies(wayland-displays generate-protocol-headers)
+# Include the generated protocol headers
+include_directories(${PROTO_OUT})
+# Link the generated protocol source files
+target_link_libraries(wayland-displays generate-protocol-sources)
+
 
 ########################################
 # Install
 ########################################
 
 install(TARGETS wayland-displays DESTINATION bin)
+
+# Hack: Add generated sources to include/ directory for LSP
+install(DIRECTORY ${PROTO_OUT}/
+        DESTINATION include
+        FILES_MATCHING PATTERN "*.h")
