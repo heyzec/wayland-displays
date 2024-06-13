@@ -1,8 +1,8 @@
 #pragma once
 
-#include "wlr_output.cpp"
 #include "canvas.hpp"
 #include "display.hpp"
+#include "wlr_output.cpp"
 #include "wlr_output/shapes.hpp"
 
 #include "resources.c"
@@ -13,7 +13,6 @@
 using namespace std;
 
 #define GRESOURCE_PREFIX "/com/heyzec/wayland-displays/"
-
 
 // ============================================================
 // Global state
@@ -26,7 +25,7 @@ int selected_display = 0;
 CanvasState *canvas_state = new struct CanvasState;
 
 // GTK widgets that we need to set and get values from
-vector<GtkToggleButton*> toggle_buttons = vector<GtkToggleButton*>{};
+vector<GtkToggleButton *> toggle_buttons = vector<GtkToggleButton *>{};
 GtkSwitch *enabled_switch;
 GtkLabel *name_label;
 GtkLabel *description_label;
@@ -38,7 +37,6 @@ GtkSpinButton *dpi_spin;
 GtkSpinButton *rate_spin;
 GtkLabel *transform_button_label;
 GtkPopover *transform_menu;
-
 
 // ============================================================
 // Functions to pass data to and from the canvas
@@ -66,7 +64,6 @@ vector<Box> create_boxes_from_displays(vector<Display> displays) {
 
     box.width = width;
     box.height = height;
-
 
     boxes.push_back(box);
   }
@@ -103,14 +100,8 @@ void update_canvas() {
 
 void update_transform_label(int enum_value) {
   const char transform_readable[][20] = {
-    "Normal",
-    "Rotate 90",
-    "Rotate 180",
-    "Rotate 270",
-    "Flipped",
-    "Rotate 90, Flipped",
-    "Rotate 180, Flipped",
-    "Rotate 270, Flipped",
+      "Normal",  "Rotate 90",          "Rotate 180",          "Rotate 270",
+      "Flipped", "Rotate 90, Flipped", "Rotate 180, Flipped", "Rotate 270, Flipped",
   };
   gtk_label_set_text(transform_button_label, transform_readable[enum_value]);
 };
@@ -133,13 +124,13 @@ void update_gui_elements() {
   gtk_spin_button_set_value(size_x_spin, display.size_x);
   gtk_spin_button_set_value(size_y_spin, display.size_y);
   gtk_spin_button_set_value(dpi_spin, display.scale);
-  gtk_spin_button_set_value(rate_spin, (float) display.rate / 1000);
+  gtk_spin_button_set_value(rate_spin, (float)display.rate / 1000);
 
   // Update transform button label
   update_transform_label(display.transform);
 }
 
-void on_active_toggled(GtkToggleButton *toggle_button, void* data) {
+void on_active_toggled(GtkToggleButton *toggle_button, void *data) {
   // TODO: Functionality of this button group is incomplete!
   // Untoggle the current button
   GtkToggleButton *active_button = toggle_buttons.at(selected_display);
@@ -222,8 +213,8 @@ void on_apply_clicked(GtkButton *apply_button) {
   // Need to slice subclass to parent class
   std::vector<HeadDyanamicInfo> temp;
   temp.reserve(displays.size());
-  for (const auto& b : displays) {
-      temp.emplace_back(b);
+  for (const auto &b : displays) {
+    temp.emplace_back(b);
   }
   apply_configurations(temp);
 }
@@ -231,7 +222,6 @@ void on_apply_clicked(GtkButton *apply_button) {
 // ============================================================
 // App layout
 // ============================================================
-
 
 GtkWidget *get_window() {
   // Create a GtkBuilder instance
@@ -282,7 +272,8 @@ GtkWidget *get_window() {
   GtkButton *apply_button = GTK_BUTTON(gtk_builder_get_object(builder, "apply_button"));
   g_signal_connect(apply_button, "clicked", G_CALLBACK(on_apply_clicked), NULL);
 
-  // Get the 8 transform buttons within popover (one for each possible transform) and attach to common event handler
+  // Get the 8 transform buttons within popover (one for each possible transform) and attach to
+  // common event handler
   transform_menu = GTK_POPOVER(gtk_builder_get_object(builder, "transform_popover"));
   for (int i = 0; i < 8; i++) {
     std::string button_id = "transform_" + to_string(i);
@@ -295,7 +286,8 @@ GtkWidget *get_window() {
   GtkBox *button_box = GTK_BOX(gtk_builder_get_object(builder, "button_box"));
   for (int i = 0; i < displays.size(); i++) {
     Display *display = &displays.at(i);
-    GtkToggleButton *toggle_button = GTK_TOGGLE_BUTTON(gtk_toggle_button_new_with_label(display->name));
+    GtkToggleButton *toggle_button =
+        GTK_TOGGLE_BUTTON(gtk_toggle_button_new_with_label(display->name));
     gtk_widget_set_name(GTK_WIDGET(toggle_button), display->name);
     gtk_container_add(GTK_CONTAINER(button_box), GTK_WIDGET(toggle_button));
     if (i != selected_display) {
@@ -304,11 +296,9 @@ GtkWidget *get_window() {
     toggle_buttons.push_back(toggle_button);
   }
 
-
   // Add header bar
   GtkWidget *header_bar = GTK_WIDGET(gtk_builder_get_object(builder, "header"));
   gtk_window_set_titlebar(GTK_WINDOW(window), header_bar);
-
 
   return window;
 }

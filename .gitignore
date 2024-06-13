@@ -1,6 +1,9 @@
 # Flakes
 .direnv/
 
+# Cache
+.cache/
+
 # Build artifacts
 build/
 

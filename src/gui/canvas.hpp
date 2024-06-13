@@ -27,10 +27,8 @@ struct CanvasState {
   float box_start_y;
 };
 
-
 GtkWidget *get_canvas(CanvasState *);
 
 void attach_canvas_updated_callback(void (*func)(CanvasState));
 
 void redraw_canvas();
-

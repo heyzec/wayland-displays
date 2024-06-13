@@ -24,7 +24,6 @@ using json = nlohmann::ordered_json;
 // };
 // void to_json(json &j, const Mode &m);
 
-
 /* Based on zwlr_output_mode_v1. */
 // class Display : public HeadDyanamicInfo {
 // public:

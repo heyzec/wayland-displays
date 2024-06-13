@@ -10,7 +10,8 @@
 //
 // // void to_json(json &j, const Mode &m) {
 // //   j = json{
-// //       {"width", m.width}, {"height", m.height}, {"refresh", m.refresh}, {"preferred", m.preferred}};
+// //       {"width", m.width}, {"height", m.height}, {"refresh", m.refresh}, {"preferred",
+// m.preferred}};
 // // }
 //
 // // void to_json(json &j, const Display &d) {

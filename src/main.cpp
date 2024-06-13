@@ -5,7 +5,6 @@
 #include <getopt.h>
 #include <string>
 
-
 void print_usage() {
   printf("Usage: my_program [options]\n");
   printf("Options:\n");
@@ -18,12 +17,10 @@ int main(int argc, char *argv[]) {
   char *output_file = NULL;
 
   // Define long options
-  static struct option long_options[] = {
-    {"help", no_argument, 0, 'h'},
-    {"server", no_argument, 0, 's'},
-    {"gui", no_argument, 0, 'g'},
-    {0, 0, 0, 0}
-  };
+  static struct option long_options[] = {{"help", no_argument, 0, 'h'},
+                                         {"server", no_argument, 0, 's'},
+                                         {"gui", no_argument, 0, 'g'},
+                                         {0, 0, 0, 0}};
 
   int n_opt = 0;
 
@@ -58,7 +55,7 @@ int main(int argc, char *argv[]) {
 
   // If no arguments, run code sandbox
   if (n_opt == 0) {
-      int status = sandbox();
+    int status = sandbox();
     exit(status);
   }
 

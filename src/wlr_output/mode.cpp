@@ -3,19 +3,19 @@
  * https://wayland.app/protocols/wlr-output-management-unstable-v1#zwlr_output_mode_v1
  */
 #include "wlr_output/mode.hpp"
-#include "wlr_output/shapes.hpp"
 #include "wlr-output-management-unstable-v1.h"
+#include "wlr_output/shapes.hpp"
 #include <cstdio>
 
-
-static void size(void *data, struct zwlr_output_mode_v1 *wl_mode, const int32_t width, const int32_t height) {
-  auto *mode = (struct Mode *) data;
+static void size(void *data, struct zwlr_output_mode_v1 *wl_mode, const int32_t width,
+                 const int32_t height) {
+  auto *mode = (struct Mode *)data;
   mode->size_x = width;
   mode->size_y = height;
 }
 
 static void refresh(void *data, struct zwlr_output_mode_v1 *wl_mode, const int32_t refresh) {
-  auto *mode = (struct Mode *) data;
+  auto *mode = (struct Mode *)data;
   mode->rate = refresh;
 }
 
@@ -29,10 +29,10 @@ static void finished(void *data, struct zwlr_output_mode_v1 *mode) {
 }
 
 static const struct zwlr_output_mode_v1_listener mode_listener = {
-  .size = size,
-  .refresh = refresh,
-  .preferred = preferred,
-  .finished = finished,
+    .size = size,
+    .refresh = refresh,
+    .preferred = preferred,
+    .finished = finished,
 };
 
 const struct zwlr_output_mode_v1_listener *get_mode_listener() {

@@ -23,19 +23,18 @@ pollfd *pfd_ipc;
 pollfd *pfd_wayland;
 pollfd *pfd_signal;
 
-
 // ============================================================
 // Helper functions (avoid using global variables)
 // ============================================================
 
 std::string get_socket_path() {
   char file_path[256];
-  const char* runtime_dir = getenv("XDG_RUNTIME_DIR");
+  const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
   snprintf(file_path, sizeof(file_path), "%s/%s", runtime_dir, "wayland-displays.sock");
   return file_path;
 };
 
-int ipc_socket_create(const char* socket_path) {
+int ipc_socket_create(const char *socket_path) {
   // Create a UNIX domain socket
   int fd_server_sock = socket(AF_UNIX, SOCK_STREAM, 0);
   if (fd_server_sock < 0) {
@@ -65,7 +64,7 @@ int ipc_socket_create(const char* socket_path) {
   return fd_server_sock;
 }
 
-void ipc_socket_destroy(int fd_server_sock, const char* socket_path) {
+void ipc_socket_destroy(int fd_server_sock, const char *socket_path) {
   close(fd_server_sock);
   unlink(socket_path);
 }
@@ -105,22 +104,13 @@ void server_deinit() {
 void reset_all_pfds() {
   all_pfds.clear();
 
-  all_pfds.push_back({
-    .fd = fd_server_sock,
-    .events = POLLIN
-  });
+  all_pfds.push_back({.fd = fd_server_sock, .events = POLLIN});
   pfd_ipc = &all_pfds.back();
 
-  all_pfds.push_back({
-    .fd = get_wl_display_fd(),
-    .events = POLLIN
-  });
+  all_pfds.push_back({.fd = get_wl_display_fd(), .events = POLLIN});
   pfd_wayland = &all_pfds.back();
 
-  all_pfds.push_back({
-    .fd = fd_signal,
-    .events = POLLIN
-  });
+  all_pfds.push_back({.fd = fd_signal, .events = POLLIN});
   pfd_signal = &all_pfds.back();
 }
 

@@ -48,7 +48,8 @@ gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data) {
     float x = box->x;
     float y = box->y;
 
-    cairo_rectangle(cr, x * CANVAS_FAC, y * CANVAS_FAC, box->width * CANVAS_FAC, box->height * CANVAS_FAC);
+    cairo_rectangle(cr, x * CANVAS_FAC, y * CANVAS_FAC, box->width * CANVAS_FAC,
+                    box->height * CANVAS_FAC);
     cairo_stroke_preserve(cr);
   }
 
@@ -65,7 +66,6 @@ gboolean draw_callback(GtkWidget *widget, cairo_t *cr, gpointer data) {
 
   return FALSE;
 }
-
 
 void on_drag_start(GtkGestureDrag *drag_, gdouble start_x, gdouble start_y, gpointer data) {
   // g_print("\nStart: (%f, %f)\n", start_x, start_y);
@@ -122,7 +122,6 @@ void on_drag_end(GtkGestureDrag *drag_, gdouble delta_x, gdouble delta_y, gpoint
 
   queue_draw_area(canvas);
 }
-
 
 GtkWidget *get_canvas(CanvasState *state) {
   canvas = gtk_drawing_area_new();

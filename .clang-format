@@ -1,4 +1,5 @@
 ---
 Language: Cpp
 ColumnLimit: 100
+AllowShortFunctionsOnASingleLine: Empty
 ---
