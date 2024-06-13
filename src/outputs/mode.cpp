@@ -2,9 +2,10 @@
  * Handlers and listeners for zwlr_output_mode
  * https://wayland.app/protocols/wlr-output-management-unstable-v1#zwlr_output_mode_v1
  */
-#include "wlr_output/mode.hpp"
+#include "outputs/mode.hpp"
+#include "outputs/shapes.hpp"
+
 #include "wlr-output-management-unstable-v1.h"
-#include "wlr_output/shapes.hpp"
 #include <cstdio>
 
 static void size(void *data, struct zwlr_output_mode_v1 *wl_mode, const int32_t width,

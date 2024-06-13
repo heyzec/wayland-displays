@@ -1,9 +1,10 @@
 #pragma once
 
+#include "outputs/config.hpp"
+#include "outputs/head.hpp"
+#include "outputs/shapes.hpp"
+
 #include "utils/fixed24_8.hpp"
-#include "wlr_output/config.hpp"
-#include "wlr_output/head.hpp"
-#include "wlr_output/shapes.hpp"
 
 #include "wlr-output-management-unstable-v1.h"
 #include <wayland-client-protocol.h>

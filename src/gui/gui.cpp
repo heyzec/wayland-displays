@@ -2,8 +2,10 @@
 
 #include "canvas.hpp"
 #include "display.hpp"
-#include "wlr_output.cpp"
-#include "wlr_output/shapes.hpp"
+
+// TODO: Do not rely on these files directly
+#include "outputs/outputs.cpp"
+#include "outputs/shapes.hpp"
 
 #include "resources.c"
 

@@ -1,6 +1,7 @@
+#include "outputs/outputs.cpp"
+#include "outputs/shapes.hpp"
+
 #include "wlr-output-management-unstable-v1.h"
-#include "wlr_output.cpp"
-#include "wlr_output/shapes.hpp"
 #include <nlohmann/json.hpp>
 
 int sandbox() {

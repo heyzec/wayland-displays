@@ -2,12 +2,14 @@
  * Handlers and listeners for zwlr_output_head
  * https://wayland.app/protocols/wlr-output-management-unstable-v1#zwlr_output_head_v1
  */
-#include "wlr_output/head.hpp"
+#include "outputs/head.hpp"
+#include "outputs/mode.hpp"
+#include "outputs/shapes.hpp"
+
 #include "display.hpp"
 #include "utils/fixed24_8.hpp"
+
 #include "wlr-output-management-unstable-v1.h"
-#include "wlr_output/mode.hpp"
-#include "wlr_output/shapes.hpp"
 #include <wayland-client-protocol.h>
 
 static void name(void *data, struct zwlr_output_head_v1 *wlr_head, const char *name) {

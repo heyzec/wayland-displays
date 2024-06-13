@@ -1,6 +1,6 @@
 #pragma once
 
-#include "wlr_output/shapes.hpp"
+#include "outputs/shapes.hpp"
 
 #include <iostream>
 #include <string>

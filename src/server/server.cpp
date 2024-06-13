@@ -1,4 +1,4 @@
-#include "wlr_output.cpp"
+#include "outputs/outputs.cpp"
 
 #include <csignal>
 #include <cstdio>

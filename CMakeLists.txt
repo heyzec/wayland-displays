@@ -5,14 +5,10 @@ project(wayland-displays VERSION 1.0 LANGUAGES C CXX)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-add_executable(wayland-displays
-    src/gui/canvas.cpp
-    src/wlr_output/head.cpp
-    src/wlr_output/config.cpp
-    src/wlr_output/mode.cpp
-    src/utils/fixed24_8.cpp
-    src/display.cpp
-    src/main.cpp)
+# Get ${SOURCES}
+include(src/CMakeLists.txt)
+
+add_executable(wayland-displays ${SOURCES})
 
 # Add the main source of headers
 include_directories("src/")
