@@ -5,8 +5,6 @@
 #include <gtk/gtk.h>
 #include <vector>
 
-using namespace std;
-
 const float CANVAS_FAC = 0.2;
 
 GtkWidget *canvas;

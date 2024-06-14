@@ -17,7 +17,7 @@
 #include <stdio.h>
 #include <vector>
 
-using std::vector;
+template <class T> using vector = std::vector<T>;
 
 /* State required for us to get and set display configs via the protocol */
 struct WlrState {
@@ -35,7 +35,7 @@ struct WlrState {
   /* Keep track of how many updates that occured too fast */
   int n_bursty_update = 0;
 
-  std::vector<Head *> heads;
+  vector<Head *> heads;
 };
 
 WlrState *state = new WlrState{};
@@ -189,8 +189,8 @@ void cancel_dispatch_events() {
 // ============================================================
 
 /* Get the current configuration of all displays */
-std::vector<DisplayInfo> get_head_infos() {
-  auto displays = std::vector<DisplayInfo>{};
+vector<DisplayInfo> get_head_infos() {
+  auto displays = vector<DisplayInfo>{};
   for (auto head : state->heads) {
     displays.push_back(head->info);
   }
@@ -198,7 +198,7 @@ std::vector<DisplayInfo> get_head_infos() {
 }
 
 /* Momentarily connect to compositor to get display info */
-std::vector<DisplayInfo> get_displays() {
+vector<DisplayInfo> get_displays() {
   wlr_output_init();
   auto displays = get_head_infos();
   // TODO: GUI shouldn't rely on this function
@@ -206,7 +206,7 @@ std::vector<DisplayInfo> get_displays() {
   return displays;
 }
 
-void apply_configurations(std::vector<DisplayConfig> configs) {
+void apply_configurations(vector<DisplayConfig> configs) {
   printf("Apply new configuration changes...\n");
 
   if (state->display == nullptr || state->manager == nullptr) {

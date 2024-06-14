@@ -12,9 +12,10 @@
 #include <gtk/gtk.h>
 #include <vector>
 
-using namespace std;
-
 #define GRESOURCE_PREFIX "/com/heyzec/wayland-displays/"
+
+using string = std::string;
+template <class T> using vector = std::vector<T>;
 
 // ============================================================
 // Global state
@@ -198,7 +199,7 @@ void on_transform_menu_clicked(GtkWidget *transform_button) {
     return;
   }
 
-  std::string name = gtk_widget_get_name(transform_button);
+  string name = gtk_widget_get_name(transform_button);
   int enum_value = name[name.length() - 1] - '0';
   if (!(0 <= enum_value && enum_value < 8)) {
     printf("transform enum_value is unexpected\n");
@@ -213,7 +214,7 @@ void on_transform_menu_clicked(GtkWidget *transform_button) {
 
 void on_apply_clicked(GtkButton *apply_button) {
   // Need to slice subclass to parent class
-  std::vector<DisplayConfig> temp;
+  vector<DisplayConfig> temp;
   temp.reserve(displays.size());
   for (const auto &b : displays) {
     temp.emplace_back(b);
@@ -233,7 +234,7 @@ GtkWidget *get_window() {
   g_resources_register(resources_get_resource());
 
   // Load the UI description from the resource
-  std::string resource_path = std::string(GRESOURCE_PREFIX) + "layout.ui";
+  string resource_path = string(GRESOURCE_PREFIX) + "layout.ui";
   if (!gtk_builder_add_from_resource(builder, resource_path.c_str(), NULL)) {
     printf("Error loading resource: %s\n", resource_path.c_str());
     exit(1);
@@ -278,7 +279,7 @@ GtkWidget *get_window() {
   // common event handler
   transform_menu = GTK_POPOVER(gtk_builder_get_object(builder, "transform_popover"));
   for (int i = 0; i < 8; i++) {
-    std::string button_id = "transform_" + to_string(i);
+    string button_id = "transform_" + std::to_string(i);
     GtkButton *button = GTK_BUTTON(gtk_builder_get_object(builder, button_id.c_str()));
     g_signal_connect(button, "clicked", G_CALLBACK(on_transform_menu_clicked), NULL);
   }
