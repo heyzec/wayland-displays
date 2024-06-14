@@ -4,7 +4,7 @@
 #include "display.hpp"
 
 // TODO: Do not rely on these files directly
-#include "outputs/outputs.cpp"
+#include "outputs/outputs.hpp"
 #include "outputs/shapes.hpp"
 
 #include "resources.c"

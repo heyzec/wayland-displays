@@ -1,12 +1,14 @@
-#pragma once
-
+#include "outputs/outputs.hpp"
 #include "outputs/config.hpp"
 #include "outputs/head.hpp"
 #include "outputs/shapes.hpp"
 
+#include "server/handlers/DefaultHandler.cpp"
 #include "utils/fixed24_8.hpp"
+#include "utils/time.cpp"
 
 #include "wlr-output-management-unstable-v1.h"
+#include <unistd.h>
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
 #include <wayland-util.h>
@@ -16,6 +18,8 @@
 #include <ostream>
 #include <stdio.h>
 #include <vector>
+
+using std::vector;
 
 struct WlrHead {
   struct zwlr_output_head_v1 *head;
@@ -27,6 +31,16 @@ struct WlrState {
   struct wl_display *display;
   struct zwlr_output_manager_v1 *manager;
   uint32_t serial;
+
+  /* True iff we initiated a zwlr_output_configuration_v1::apply() request and are waiting for the
+   * next zwlr_output_manager_v1::done() event.
+   * To keep track of events so that we do not respond to config changes initiated by us
+   * (infinite loop).
+   */
+  bool is_updating = false;
+  long long last_updated = 0;
+  /* Keep track of how many updates that occured too fast */
+  int n_bursty_update = 0;
 
   std::vector<Head *> heads;
 };
@@ -51,11 +65,25 @@ static void head(void *data, struct zwlr_output_manager_v1 *manager,
 
 static void done(void *data, struct zwlr_output_manager_v1 *manager, uint32_t serial) {
   printf("==Done==\n");
-  for (int i = 0; i < state->heads.size(); i++) {
-    Head *head = state->heads.at(i);
-    head->info.show();
-  }
   state->serial = serial;
+  if (state->is_updating) {
+    // We ignore this event as it is caused by us requesting a config change previously
+    state->is_updating = false;
+    return;
+  }
+  state->is_updating = false;
+
+  auto displays = get_head_infos();
+  // Call the default handler
+  auto handler = DefaultHandler();
+  vector<HeadDyanamicInfo> *changes = handler.handle(&displays);
+  if (changes != nullptr) {
+    // TODO: Sleep for a short time since there can be multiple DONE events, e.g.
+    // another display outputs manager is setting heads too
+    // But we need to retrieve the new serials too, else our request will be invalid.
+    usleep(200);
+    apply_configurations(*changes);
+  }
 }
 
 static void finished(void *data, struct zwlr_output_manager_v1 *manager) {
@@ -163,20 +191,31 @@ void cancel_dispatch_events() {
   wl_display_cancel_read(state->display);
 }
 
-/* Momentarily connect to compositor to get display info */
-std::vector<HeadAllInfo> get_displays() {
-  auto displays = std::vector<HeadAllInfo>{};
-  wlr_output_init();
+// ============================================================
+// Main(?) functions
+// ============================================================
 
+/* Get the current configuration of all displays */
+std::vector<HeadAllInfo> get_head_infos() {
+  auto displays = std::vector<HeadAllInfo>{};
   for (auto head : state->heads) {
     displays.push_back(head->info);
   }
+  return displays;
+}
 
-  // wlr_output_cleanup();
+/* Momentarily connect to compositor to get display info */
+std::vector<HeadAllInfo> get_displays() {
+  wlr_output_init();
+  auto displays = get_head_infos();
+  // TODO: GUI shouldn't rely on this function
+  // wlr_output_deinit();
   return displays;
 }
 
 void apply_configurations(std::vector<HeadDyanamicInfo> configs) {
+  printf("Apply new configuration changes...\n");
+
   if (state->display == nullptr || state->manager == nullptr) {
     printf("wl_display or zwlr_output_manager is null!");
     return;
@@ -210,8 +249,22 @@ void apply_configurations(std::vector<HeadDyanamicInfo> configs) {
       }
     }
   }
-
   zwlr_output_configuration_v1_apply(zwlr_config);
+
+  state->is_updating = true;
+
+  // Safety mechanism
+  if ((time_in_ms() - state->last_updated) < 2000) {
+    if (state->n_bursty_update > 3) {
+      printf("Changes being applied too quickly, exiting to not break stuff...\n");
+      // TODO: Proper cleanup
+      exit(1);
+    }
+    state->n_bursty_update += 1;
+  } else {
+    state->n_bursty_update = 0;
+  }
+  state->last_updated = time_in_ms();
 
   // We may lose some events here
   wl_display_roundtrip(state->display);

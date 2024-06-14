@@ -30,6 +30,11 @@ struct HeadDyanamicInfo {
   int size_x;
   int size_y;
   int rate;
+
+  void show() {
+    printf("Name %s Enabled %d Position (%d,%d) Size %dx%d Scale %f Rate %d Transform %d\n", name,
+           enabled, pos_x, pos_y, size_x, size_y, scale, rate, transform);
+  }
 };
 
 struct HeadAllInfo : HeadDyanamicInfo {

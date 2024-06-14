@@ -1,4 +1,4 @@
-#include "outputs/outputs.cpp"
+#include "outputs/outputs.hpp"
 
 #include <csignal>
 #include <cstdio>

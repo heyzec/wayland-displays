@@ -1,4 +1,4 @@
-#include "outputs/outputs.cpp"
+#include "outputs/outputs.hpp"
 #include "outputs/shapes.hpp"
 
 #include "wlr-output-management-unstable-v1.h"
