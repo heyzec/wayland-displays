@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 
 int sandbox() {
-  auto displays = std::vector<HeadDyanamicInfo>{};
+  auto displays = std::vector<DisplayConfig>{};
   wlr_output_init();
 
   // // Print the elements of the vector

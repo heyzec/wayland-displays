@@ -5,7 +5,7 @@
 /* Arrange discovered displays in a row. */
 class ArrangeRowHandler : BaseHandler {
 public:
-  std::vector<HeadDyanamicInfo> *handle(std::vector<HeadAllInfo> *heads) {
+  std::vector<DisplayConfig> *handle(std::vector<DisplayInfo> *heads) {
     for (int i = 0; i < heads->size(); i++) {
       auto head = heads->at(i);
       head.show();
@@ -13,9 +13,9 @@ public:
 
     int x = 0;
 
-    std::vector<HeadDyanamicInfo> *config = new std::vector<HeadDyanamicInfo>();
+    std::vector<DisplayConfig> *config = new std::vector<DisplayConfig>();
     config->reserve(heads->size());
-    for (HeadAllInfo &head : *heads) {
+    for (DisplayConfig &head : *heads) {
       head.pos_x = x;
       head.pos_y = 0;
       config->push_back(head);

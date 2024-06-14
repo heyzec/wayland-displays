@@ -21,7 +21,7 @@ using namespace std;
 // ============================================================
 
 /* Attributes of displays, source of truth */
-vector<Display> displays = vector<Display>{Display{}};
+vector<DisplayInfo> displays = vector<DisplayInfo>{DisplayInfo{}};
 
 int selected_display = 0;
 CanvasState *canvas_state = new struct CanvasState;
@@ -44,7 +44,7 @@ GtkPopover *transform_menu;
 // Functions to pass data to and from the canvas
 // ============================================================
 
-vector<Box> create_boxes_from_displays(vector<Display> displays) {
+vector<Box> create_boxes_from_displays(vector<DisplayInfo> displays) {
   auto boxes = vector<Box>();
   for (auto display : displays) {
     Box box = Box{};
@@ -72,7 +72,7 @@ vector<Box> create_boxes_from_displays(vector<Display> displays) {
   return boxes;
 }
 
-void update_displays_from_boxes(vector<Display> *displays, const CanvasState canvas_state) {
+void update_displays_from_boxes(vector<DisplayInfo> *displays, const CanvasState canvas_state) {
   vector<Box> boxes = canvas_state.boxes;
   if (displays->size() != boxes.size()) {
     printf("Vector sizes do not match!\n");
@@ -84,7 +84,7 @@ void update_displays_from_boxes(vector<Display> *displays, const CanvasState can
   // Note that only position attributes are updated back
   for (int i = 0; i < boxes.size(); i++) {
     Box box = boxes.at(i);
-    Display *display = &displays->at(i);
+    DisplayInfo *display = &displays->at(i);
     display->pos_x = box.x;
     display->pos_y = box.y;
   }
@@ -213,7 +213,7 @@ void on_transform_menu_clicked(GtkWidget *transform_button) {
 
 void on_apply_clicked(GtkButton *apply_button) {
   // Need to slice subclass to parent class
-  std::vector<HeadDyanamicInfo> temp;
+  std::vector<DisplayConfig> temp;
   temp.reserve(displays.size());
   for (const auto &b : displays) {
     temp.emplace_back(b);
@@ -287,7 +287,7 @@ GtkWidget *get_window() {
   // Attach drawing canvas to empty box
   GtkBox *button_box = GTK_BOX(gtk_builder_get_object(builder, "button_box"));
   for (int i = 0; i < displays.size(); i++) {
-    Display *display = &displays.at(i);
+    DisplayInfo *display = &displays.at(i);
     GtkToggleButton *toggle_button =
         GTK_TOGGLE_BUTTON(gtk_toggle_button_new_with_label(display->name));
     gtk_widget_set_name(GTK_WIDGET(toggle_button), display->name);
@@ -310,7 +310,7 @@ GtkWidget *get_window() {
 // ============================================================
 
 void run_gui() {
-  vector<Display> displays_ = get_displays();
+  vector<DisplayInfo> displays_ = get_displays();
   displays = displays_; // Create a copy
 
   auto on_canvas_updated = [](const CanvasState canvas_state) {

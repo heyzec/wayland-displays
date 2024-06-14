@@ -26,8 +26,8 @@ void cancel_dispatch_events();
 // Main(?) functions
 // ============================================================
 
-std::vector<HeadAllInfo> get_head_infos();
+std::vector<DisplayInfo> get_head_infos();
 
-std::vector<HeadAllInfo> get_displays();
+std::vector<DisplayInfo> get_displays();
 
-void apply_configurations(std::vector<HeadDyanamicInfo> configs);
+void apply_configurations(std::vector<DisplayConfig> configs);

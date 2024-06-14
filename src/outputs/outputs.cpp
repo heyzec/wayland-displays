@@ -11,20 +11,13 @@
 #include <unistd.h>
 #include <wayland-client-protocol.h>
 #include <wayland-client.h>
-#include <wayland-util.h>
 
 #include <cstring>
 #include <iostream>
-#include <ostream>
 #include <stdio.h>
 #include <vector>
 
 using std::vector;
-
-struct WlrHead {
-  struct zwlr_output_head_v1 *head;
-  struct wl_list link;
-};
 
 /* State required for us to get and set display configs via the protocol */
 struct WlrState {
@@ -76,7 +69,7 @@ static void done(void *data, struct zwlr_output_manager_v1 *manager, uint32_t se
   auto displays = get_head_infos();
   // Call the default handler
   auto handler = DefaultHandler();
-  vector<HeadDyanamicInfo> *changes = handler.handle(&displays);
+  vector<DisplayConfig> *changes = handler.handle(&displays);
   if (changes != nullptr) {
     // TODO: Sleep for a short time since there can be multiple DONE events, e.g.
     // another display outputs manager is setting heads too
@@ -196,8 +189,8 @@ void cancel_dispatch_events() {
 // ============================================================
 
 /* Get the current configuration of all displays */
-std::vector<HeadAllInfo> get_head_infos() {
-  auto displays = std::vector<HeadAllInfo>{};
+std::vector<DisplayInfo> get_head_infos() {
+  auto displays = std::vector<DisplayInfo>{};
   for (auto head : state->heads) {
     displays.push_back(head->info);
   }
@@ -205,7 +198,7 @@ std::vector<HeadAllInfo> get_head_infos() {
 }
 
 /* Momentarily connect to compositor to get display info */
-std::vector<HeadAllInfo> get_displays() {
+std::vector<DisplayInfo> get_displays() {
   wlr_output_init();
   auto displays = get_head_infos();
   // TODO: GUI shouldn't rely on this function
@@ -213,7 +206,7 @@ std::vector<HeadAllInfo> get_displays() {
   return displays;
 }
 
-void apply_configurations(std::vector<HeadDyanamicInfo> configs) {
+void apply_configurations(std::vector<DisplayConfig> configs) {
   printf("Apply new configuration changes...\n");
 
   if (state->display == nullptr || state->manager == nullptr) {
@@ -225,7 +218,7 @@ void apply_configurations(std::vector<HeadDyanamicInfo> configs) {
       zwlr_output_manager_v1_create_configuration(state->manager, state->serial);
   zwlr_output_configuration_v1_add_listener(zwlr_config, get_config_listener(), state->display);
 
-  for (HeadDyanamicInfo config : configs) {
+  for (DisplayConfig config : configs) {
     for (Head *head : state->heads) {
       if (config.name == head->info.name) {
         if (!config.enabled) {

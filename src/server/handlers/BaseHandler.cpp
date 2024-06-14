@@ -8,5 +8,5 @@ public:
    * Changes will be apply based on the config of returned value.
    * Otherwise, return NULL if no changes are required.
    */
-  virtual std::vector<HeadDyanamicInfo> *handle(std::vector<HeadAllInfo> *heads) = 0;
+  virtual std::vector<DisplayConfig> *handle(std::vector<DisplayInfo> *heads) = 0;
 };
