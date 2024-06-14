@@ -49,6 +49,7 @@
 
           # Filtered list of source files
           src = lib.sourceByRegex ./. [
+            "Makefile"
             "CMakeLists.txt"
             "^src.*"
             "^cmake.*"

@@ -54,15 +54,16 @@ wayland-displays aims to address this gap by integrating the best aspects of exi
 
 ## Build instructions
 
-Dependencies:
-- cmake
+We use cmake to configure the project.
+
+**Dependencies**:
 - GTK3
 - Cairo
+- Wayland
+- `wayland-scanner` (generates headers from wayland xml spec files)
 
-```
-cmake -B build -S .
-cd build
-cmake --build .
+```sh
+make
 ```
 
 **For Nix users**
