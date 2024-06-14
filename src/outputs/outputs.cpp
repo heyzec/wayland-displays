@@ -28,7 +28,7 @@ struct WlrState {
   struct zwlr_output_manager_v1 *manager;
   uint32_t serial;
 
-  struct std::vector<Head> heads;
+  std::vector<Head *> heads;
 };
 
 WlrState *state = new WlrState{};
@@ -39,21 +39,22 @@ WlrState *state = new WlrState{};
 
 static void head(void *data, struct zwlr_output_manager_v1 *manager,
                  struct zwlr_output_head_v1 *wlr_head) {
-  printf("==Head==\n");
   auto state = (WlrState *)data;
 
   int index = state->heads.size();
-  Head head = Head{};
-  head.wlr_head = wlr_head;
+  Head *head = new Head{};
+  head->wlr_head = wlr_head;
   state->heads.push_back(head);
 
-  // int index = displays->size();
-  // displays->push_back(Display{});
-  zwlr_output_head_v1_add_listener(wlr_head, get_head_listener(), &state->heads.at(index));
+  zwlr_output_head_v1_add_listener(wlr_head, get_head_listener(), (Head *)state->heads.at(index));
 }
 
 static void done(void *data, struct zwlr_output_manager_v1 *manager, uint32_t serial) {
   printf("==Done==\n");
+  for (int i = 0; i < state->heads.size(); i++) {
+    Head *head = state->heads.at(i);
+    head->info.show();
+  }
   state->serial = serial;
 }
 
@@ -168,7 +169,7 @@ std::vector<HeadAllInfo> get_displays() {
   wlr_output_init();
 
   for (auto head : state->heads) {
-    displays.push_back(head.info);
+    displays.push_back(head->info);
   }
 
   // wlr_output_cleanup();
@@ -186,15 +187,15 @@ void apply_configurations(std::vector<HeadDyanamicInfo> configs) {
   zwlr_output_configuration_v1_add_listener(zwlr_config, get_config_listener(), state->display);
 
   for (HeadDyanamicInfo config : configs) {
-    for (Head head : state->heads) {
-      if (config.name == head.info.name) {
+    for (Head *head : state->heads) {
+      if (config.name == head->info.name) {
         if (!config.enabled) {
-          zwlr_output_configuration_v1_disable_head(zwlr_config, head.wlr_head);
+          zwlr_output_configuration_v1_disable_head(zwlr_config, head->wlr_head);
           break;
         }
 
         zwlr_output_configuration_head_v1 *config_head =
-            zwlr_output_configuration_v1_enable_head(zwlr_config, head.wlr_head);
+            zwlr_output_configuration_v1_enable_head(zwlr_config, head->wlr_head);
 
         zwlr_output_configuration_head_v1_set_position(config_head, config.pos_x, config.pos_y);
         zwlr_output_configuration_head_v1_set_custom_mode(config_head, config.size_x, config.size_y,
