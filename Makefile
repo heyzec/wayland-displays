@@ -6,7 +6,8 @@ all: configure build
 
 # Configure the project using cmake
 configure:
-	cmake -S . -B ${BUILD_DIR}
+	# Add flag to generate compile_commands.json for LSP to find headers
+	cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -S . -B ${BUILD_DIR}
 
 # Build the project
 build:
