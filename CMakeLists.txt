@@ -22,15 +22,19 @@ include_directories("src/")
 
 find_package(Cairo REQUIRED)
 include_directories(${CAIRO_INCLUDE_DIRS})
-target_link_libraries(wayland-displays ${CAIRO_LIBRARIES})
+target_link_libraries(wayland-displays PUBLIC ${CAIRO_LIBRARIES})
 
 find_package(GTK3 REQUIRED)
 include_directories(${GTK3_INCLUDE_DIRS})
-target_link_libraries(wayland-displays ${GTK3_LIBRARIES})
+target_link_libraries(wayland-displays PUBLIC ${GTK3_LIBRARIES})
 
 find_package(Wayland REQUIRED)
 include_directories(${WAYLAND_INCLUDE_DIRS})
-target_link_libraries(wayland-displays ${WAYLAND_LIBRARIES})
+target_link_libraries(wayland-displays PUBLIC ${WAYLAND_LIBRARIES})
+
+pkg_check_modules(YAML_CPP REQUIRED yaml-cpp)
+include_directories(${YAML_CPP_INCLUDE_DIRS})
+target_link_libraries(wayland-displays PUBLIC ${YAML_CPP_LIBRARIES})
 
 ########################################
 # Generated protocols
@@ -73,7 +77,7 @@ add_protocol("wlr-output-management-unstable-v1")
 # Include the generated protocol headers
 include_directories(${PROTO_OUT})
 # Link the generated protocol source files
-target_link_libraries(wayland-displays generate-protocol-sources)
+target_link_libraries(wayland-displays PUBLIC generate-protocol-sources)
 
 
 ########################################
@@ -102,7 +106,7 @@ add_library(generate-resources-sources STATIC ${RESOURCE_C})
 
 include_directories(wayland-displays PRIVATE ${RESOURCE_OUT})
 
-target_link_libraries(wayland-displays generate-resources-sources)
+target_link_libraries(wayland-displays PUBLIC generate-resources-sources)
 
 
 ########################################

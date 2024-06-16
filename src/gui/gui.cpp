@@ -1,7 +1,10 @@
 #pragma once
 
+#include "server/server.cpp"
+
 #include "canvas.hpp"
 #include "display.hpp"
+#include "utils/paths.cpp"
 
 // TODO: Do not rely on these files directly
 #include "outputs/outputs.hpp"
@@ -212,6 +215,35 @@ void on_transform_menu_clicked(GtkWidget *transform_button) {
   update_canvas();
 }
 
+YAML::Node send_ipc_request(YAML::Node request) {
+  // Create a UNIX domain socket
+  int fd_client_sock = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (fd_client_sock < 0) {
+    perror("Error creating socket");
+    exit(1);
+  }
+
+  // Set up the address structure
+  struct sockaddr_un addr;
+  addr.sun_family = AF_UNIX;
+  std::string path = get_socket_path();
+  // memset(&addr, 0, sizeof(addr));
+  strncpy(addr.sun_path, get_socket_path().c_str(), sizeof(addr.sun_path) - 1);
+
+  // Connect to server
+  if (connect(fd_client_sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    perror("connect");
+    exit(1);
+  }
+
+  // Send request
+  socket_write(fd_client_sock, request);
+
+  // Read response
+  YAML::Node response = socket_read(fd_client_sock);
+  return response;
+}
+
 void on_apply_clicked(GtkButton *apply_button) {
   // Need to slice subclass to parent class
   vector<DisplayConfig> temp;
@@ -219,7 +251,15 @@ void on_apply_clicked(GtkButton *apply_button) {
   for (const auto &b : displays) {
     temp.emplace_back(b);
   }
-  apply_configurations(temp);
+
+  YAML::Node request;
+  request["OP"] = "SET";
+  request["HEADS"] = temp;
+
+  // TODO: This will actually block the GTK loop
+  send_ipc_request(request);
+
+  // TODO: Also get result back
 }
 
 // ============================================================
@@ -302,6 +342,8 @@ GtkWidget *get_window() {
   // Add header bar
   GtkWidget *header_bar = GTK_WIDGET(gtk_builder_get_object(builder, "header"));
   gtk_window_set_titlebar(GTK_WINDOW(window), header_bar);
+  // Stop gtk_main when GUI closed
+  g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
   return window;
 }
@@ -311,8 +353,11 @@ GtkWidget *get_window() {
 // ============================================================
 
 void run_gui() {
-  vector<DisplayInfo> displays_ = get_displays();
-  displays = displays_; // Create a copy
+  // Get displays state via IPC
+  YAML::Node node;
+  node["OP"] = "GET";
+  YAML::Node response = send_ipc_request(node);
+  displays = response["STATE"]["HEADS"].as<vector<DisplayInfo>>();
 
   auto on_canvas_updated = [](const CanvasState canvas_state) {
     update_displays_from_boxes(&displays, canvas_state);
@@ -325,8 +370,8 @@ void run_gui() {
   GtkWidget *window = get_window();
 
   update_gui_elements();
-
   gtk_widget_show_all(window);
   gtk_main();
+
   // g_object_unref(builder);
 }

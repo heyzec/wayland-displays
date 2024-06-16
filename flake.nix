@@ -36,6 +36,7 @@
                 wayland
                 wayland-scanner
                 nlohmann_json
+                yaml-cpp
               ];
 
               buildInputs = [ ];
@@ -54,6 +55,9 @@
               [
                 # Create .ui files
                 glade
+
+                # Testing sockets
+                socat
 
                 # Experiment with existing tools
                 way-displays

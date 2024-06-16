@@ -1,6 +1,7 @@
 #include "gui/gui.cpp"
 #include "sandbox.cpp"
-#include "server/server.cpp"
+
+#include <yaml-cpp/yaml.h>
 
 #include <getopt.h>
 #include <string>
@@ -40,9 +41,21 @@ int main(int argc, char *argv[]) {
     case 's':
       run_server();
       exit(1);
-    case 'g':
+    case 'g': {
+      // TODO: Fork a temporary server if no server exists
+      // int pid = fork();
+      // if (pid == 0) {
+      //   run_server();
+      //   exit(0);
+      // }
+      // printf("Server PID %d, GUI PID %d\n", pid, getpid());
+
       run_gui();
-      exit(1);
+
+      // kill(pid, SIGINT);
+
+      exit(0);
+    };
     case '?':
       // getopt_long already printed an error message
       print_usage();

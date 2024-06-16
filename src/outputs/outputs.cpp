@@ -38,7 +38,7 @@ struct WlrState {
   vector<Head *> heads;
 };
 
-WlrState *state = new WlrState{};
+WlrState *state;
 
 // ============================================================
 // Handlers and listeners for zwlr_output_manager
@@ -115,6 +115,7 @@ static const struct wl_registry_listener registry_listener = {
 // ============================================================
 
 void wlr_output_init() {
+  state = new WlrState{};
   // Connect to compositor and get the Wayland display singleton
   wl_display *display = wl_display_connect(NULL);
   if (!display) {
@@ -209,8 +210,12 @@ vector<DisplayInfo> get_displays() {
 void apply_configurations(vector<DisplayConfig> configs) {
   printf("Apply new configuration changes...\n");
 
-  if (state->display == nullptr || state->manager == nullptr) {
-    printf("wl_display or zwlr_output_manager is null!");
+  if (state->display == nullptr) {
+    printf("wl_display is null!\n");
+    return;
+  }
+  if (state->manager == nullptr) {
+    printf("zwlr_output_manager is null!\n");
     return;
   }
 
@@ -220,7 +225,7 @@ void apply_configurations(vector<DisplayConfig> configs) {
 
   for (DisplayConfig config : configs) {
     for (Head *head : state->heads) {
-      if (config.name == head->info.name) {
+      if (strcmp(config.name, head->info.name) == 0) {
         if (!config.enabled) {
           zwlr_output_configuration_v1_disable_head(zwlr_config, head->wlr_head);
           break;

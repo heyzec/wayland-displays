@@ -1,10 +1,17 @@
+#include "server/ipc.cpp"
+
 #include "outputs/outputs.hpp"
+#include "utils/paths.hpp"
+#include "utils/socket.cpp"
+
+#include <yaml-cpp/yaml.h>
 
 #include <csignal>
 #include <cstdio>
 #include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
 #include <sys/signalfd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -16,6 +23,8 @@ using string = std::string;
 
 /* File descriptor of server socket */
 int fd_server_sock;
+/* File descriptor of client socket, if client IPC request not handled within in one loop */
+int fd_client_sock;
 /* File descriptor for signals */
 int fd_signal;
 
@@ -28,13 +37,6 @@ pollfd *pfd_signal;
 // ============================================================
 // Helper functions (avoid using global variables)
 // ============================================================
-
-string get_socket_path() {
-  char file_path[256];
-  const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
-  snprintf(file_path, sizeof(file_path), "%s/%s", runtime_dir, "wayland-displays.sock");
-  return file_path;
-};
 
 int ipc_socket_create(const char *socket_path) {
   // Create a UNIX domain socket
@@ -120,18 +122,20 @@ void reset_all_pfds() {
 // Handlers for events from the loop
 // ============================================================
 
-void handle_client_request(int client_sock) {
-  char buf[100];
-  int bytes_received;
-
-  // Handle the client connection
-  while ((bytes_received = read(client_sock, buf, sizeof(buf) - 1)) > 0) {
-    buf[bytes_received] = '\0';
-    printf("Received: %s\n", buf);
-    write(client_sock, buf, bytes_received); // Echo back the message
+bool handle_socket(int client_sock) {
+  YAML::Node yaml = socket_read(client_sock);
+  YAML::Node node = handle_ipc_request(yaml);
+  if (node.IsNull()) {
+    return true;
   }
 
-  close(client_sock);
+  socket_write(client_sock, node);
+  return true;
+}
+
+void complete_socket(int client_sock) {
+  YAML::Node node;
+  socket_write(client_sock, node);
 }
 
 // ============================================================
@@ -158,13 +162,29 @@ void server_loop() {
       cancel_dispatch_events();
     }
 
+    // TODO: This flow is incomplete
+    if (fd_client_sock != 0) {
+      complete_socket(fd_client_sock);
+      close(fd_client_sock);
+      fd_client_sock = 0;
+    }
+
     if (pfd_ipc->revents) {
-      int client_sock = accept(fd_server_sock, nullptr, nullptr);
-      if (client_sock < 0) {
-        perror("Error accepting a connection");
-        continue;
+      // If false, another pending request not been resolved, don't accept this yet
+      if (fd_client_sock == 0) {
+        int client_sock = accept(fd_server_sock, nullptr, nullptr);
+        printf("Server: Accepted connection\n");
+        if (client_sock < 0) {
+          perror("Error accepting a connection");
+          continue;
+        }
+        bool completed = handle_socket(client_sock);
+        if (completed) {
+          close(client_sock);
+        } else {
+          fd_client_sock = client_sock;
+        }
       }
-      handle_client_request(client_sock);
     }
 
     if (pfd_signal->revents) {
