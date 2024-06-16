@@ -10,51 +10,76 @@
       systems = [
         "x86_64-linux"
       ];
-      perSystem = { config, self', inputs', pkgs, lib, system, ... }: {
+      perSystem = { config, self', inputs', pkgs, lib, system, ... }:
+        let
+          wayland-displays = pkgs.stdenv.mkDerivation
+            {
+              name = "wayland-displays";
 
-        devShells.default = pkgs.mkShell {
-          packages = with pkgs; [
-            # Create .ui files
-            glade
+              # Filtered list of source files
+              src = lib.sourceByRegex ./. [
+                "Makefile"
+                "CMakeLists.txt"
+                "^src.*"
+                "^cmake.*"
+                "^protocols.*"
+                "^resources.*"
+              ];
 
-            # Experiment with existing tools
-            way-displays
-            wdisplays
-            nwg-displays
-            kanshi
-          ] ++ config.packages.default.nativeBuildInputs;
+              # Needed at compile time
+              nativeBuildInputs = with pkgs; [
+                # C++ Compiler is already part of stdenv
+                cmake
+                pkg-config
+                gtk3
+                cairo
+                wayland
+                wayland-scanner
+                nlohmann_json
+              ];
+
+              buildInputs = [ ];
+              doCheck = true;
+            };
+
+          wayland-displays-debug = (config.packages.default.overrideAttrs {
+            # See https://nixos.wiki/wiki/Debug_Symbols
+            dontStrip = true;
+            separateDebugInfo = true;
+          });
+        in
+        {
+          devShells.default = pkgs.mkShell {
+            packages = with pkgs;
+              [
+                # Create .ui files
+                glade
+
+                # Experiment with existing tools
+                way-displays
+                wdisplays
+                nwg-displays
+                kanshi
+              ] ++ config.packages.default.nativeBuildInputs;
+          };
+
+          packages.default = wayland-displays;
+          apps.debug =
+            let
+              debug = pkgs.writeShellApplication {
+                name = "debug";
+                text = ''
+                  # readelf --debug-dump=line  ${config.packages.default.out}/bin/wayland-displays
+                  ${pkgs.gdb}/bin/gdb --args ${wayland-displays-debug}/bin/wayland-displays "$@"
+                '';
+              };
+            in
+            {
+              type = "app";
+              # Using a derivation in here gets replaced
+              # with the path to the built output
+              program = "${debug}/bin/debug";
+            };
         };
-
-        packages.default = pkgs.stdenv.mkDerivation {
-          name = "wayland-displays";
-
-          # Filtered list of source files
-          src = lib.sourceByRegex ./. [
-            "Makefile"
-            "CMakeLists.txt"
-            "^src.*"
-            "^cmake.*"
-            "^protocols.*"
-            "^resources.*"
-          ];
-
-          # Needed at compile time
-          nativeBuildInputs = with pkgs; [
-            # C++ Compiler is already part of stdenv
-            cmake
-            pkg-config
-            gtk3
-            cairo
-            wayland
-            wayland-scanner
-            nlohmann_json
-          ];
-
-          # Needed at run time
-          buildInputs = [ ];
-
-          doCheck = true;
-        };
-      };
     };
 }
