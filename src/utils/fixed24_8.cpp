@@ -1,4 +1,5 @@
 #include "utils/fixed24_8.hpp"
+#include <cstdint>
 
 typedef int32_t fixed24_8;
 

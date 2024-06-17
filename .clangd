@@ -1,0 +1,6 @@
+Diagnostics:
+  # Available in clangd-14
+  UnusedIncludes: Strict
+  # Require clangd-17
+  # MissingIncludes: Strict
+

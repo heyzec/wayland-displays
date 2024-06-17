@@ -3,10 +3,6 @@
 #include <yaml-cpp/yaml.h>
 // #include <nlohmann/json.hpp>
 
-#include <iostream>
-#include <string>
-#include <vector>
-
 // using json = nlohmann::ordered_json;
 
 static void show_(DisplayConfig *head) {

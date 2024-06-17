@@ -4,6 +4,8 @@
 #include "utils/paths.hpp"
 #include "utils/socket.cpp"
 
+#include <string>
+#include <sys/poll.h>
 #include <yaml-cpp/yaml.h>
 
 #include <csignal>

@@ -1,7 +1,6 @@
 #include "canvas.hpp"
 
 #include <cairo.h>
-#include <cstdio>
 #include <gtk/gtk.h>
 #include <vector>
 

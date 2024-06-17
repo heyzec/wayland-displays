@@ -8,7 +8,6 @@
 
 // TODO: Do not rely on these files directly
 #include "outputs/outputs.hpp"
-#include "outputs/shapes.hpp"
 
 #include "resources.c"
 

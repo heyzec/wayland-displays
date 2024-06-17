@@ -1,10 +1,11 @@
 #include "gui/gui.cpp"
 #include "sandbox.cpp"
 
+#include <cstdio>
+#include <cstdlib>
 #include <yaml-cpp/yaml.h>
 
 #include <getopt.h>
-#include <string>
 
 void print_usage() {
   printf("Usage: my_program [options]\n");

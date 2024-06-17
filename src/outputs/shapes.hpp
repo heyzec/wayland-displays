@@ -5,7 +5,6 @@
 #include "wlr-output-management-unstable-v1.h"
 
 #include "vector"
-#include <cstdio>
 
 /* Container for zwlr_output_mode_v1 */
 struct Mode {

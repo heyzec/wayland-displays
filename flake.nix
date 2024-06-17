@@ -53,6 +53,9 @@
           devShells.default = pkgs.mkShell {
             packages = with pkgs;
               [
+                # For clangd
+                clang-tools_17
+
                 # Create .ui files
                 glade
 
