@@ -33,7 +33,6 @@ CanvasState *canvas_state = new struct CanvasState;
 // GTK widgets that we need to set and get values from
 ToggleGroup *toggle_group;
 GtkSwitch *enabled_switch;
-GtkLabel *name_label;
 GtkLabel *description_label;
 GtkSpinButton *pos_x_spin;
 GtkSpinButton *pos_y_spin;
@@ -121,8 +120,7 @@ void update_gui_elements() {
   // Update toggle group
   toggle_group_set_active(toggle_group, selected_display);
 
-  // Update labels
-  gtk_label_set_text(name_label, display.name);
+  // Update label
   gtk_label_set_text(description_label, display.description);
 
   // Update enabled switch
@@ -274,14 +272,11 @@ GtkWidget *get_window() {
   // Get the main window object
   GtkWidget *window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
 
-  // Attach drawing canvas to empty box
-  GtkWidget *top_box = GTK_WIDGET(gtk_builder_get_object(builder, "top_box"));
-  GtkWidget *canvas = get_canvas(canvas_state);
-  gtk_widget_set_size_request(canvas, 400, 400); // Set a size for visibility?
-  gtk_container_add(GTK_CONTAINER(top_box), canvas);
+  // Get and setup drawing canvas
+  GtkDrawingArea *drawing_area = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "drawing_area"));
+  setup_canvas(drawing_area, canvas_state);
 
-  // Get name and description labels
-  name_label = GTK_LABEL(gtk_builder_get_object(builder, "name_label"));
+  // Get description labels
   description_label = GTK_LABEL(gtk_builder_get_object(builder, "description_label"));
 
   // Get enabled switch

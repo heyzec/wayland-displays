@@ -27,7 +27,7 @@ struct CanvasState {
   float box_start_y;
 };
 
-GtkWidget *get_canvas(CanvasState *);
+void setup_canvas(GtkDrawingArea *drawing_area, CanvasState *state);
 
 void attach_canvas_updated_callback(void (*func)(CanvasState));
 

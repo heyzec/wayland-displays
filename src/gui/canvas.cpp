@@ -120,8 +120,8 @@ void on_drag_end(GtkGestureDrag *drag_, gdouble delta_x, gdouble delta_y, gpoint
   queue_draw_area(canvas);
 }
 
-GtkWidget *get_canvas(CanvasState *state) {
-  canvas = gtk_drawing_area_new();
+void setup_canvas(GtkDrawingArea *drawing_area, CanvasState *state) {
+  canvas = GTK_WIDGET(drawing_area);
 
   g_signal_connect(G_OBJECT(canvas), "draw", G_CALLBACK(draw_callback), state);
 
@@ -129,6 +129,4 @@ GtkWidget *get_canvas(CanvasState *state) {
   g_signal_connect(canvas_drag1_controller, "drag-begin", G_CALLBACK(on_drag_start), state);
   g_signal_connect(canvas_drag1_controller, "drag-update", G_CALLBACK(on_drag_update), state);
   g_signal_connect(canvas_drag1_controller, "drag-end", G_CALLBACK(on_drag_end), state);
-
-  return canvas;
 }
