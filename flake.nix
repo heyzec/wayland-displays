@@ -21,6 +21,7 @@
                 "Makefile"
                 "CMakeLists.txt"
                 "^src.*"
+                "^lib.*"
                 "^cmake.*"
                 "^protocols.*"
                 "^resources.*"

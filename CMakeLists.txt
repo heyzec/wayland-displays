@@ -7,11 +7,14 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # Get ${SOURCES}
 include(src/CMakeLists.txt)
+# Get ${LIB_SOURCES}
+include(lib/CMakeLists.txt)
 
-add_executable(wayland-displays ${SOURCES})
+add_executable(wayland-displays ${SOURCES} ${LIB_SOURCES})
 
 # Add the main source of headers
 include_directories("src/")
+include_directories("lib/")
 
 ########################################
 # Dependencies

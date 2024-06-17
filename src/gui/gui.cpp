@@ -4,6 +4,7 @@
 
 #include "canvas.hpp"
 #include "display.hpp"
+#include "togglegroup/togglegroup.hpp"
 #include "utils/paths.cpp"
 
 // TODO: Do not rely on these files directly
@@ -30,7 +31,7 @@ int selected_display = 0;
 CanvasState *canvas_state = new struct CanvasState;
 
 // GTK widgets that we need to set and get values from
-vector<GtkToggleButton *> toggle_buttons = vector<GtkToggleButton *>{};
+ToggleGroup *toggle_group;
 GtkSwitch *enabled_switch;
 GtkLabel *name_label;
 GtkLabel *description_label;
@@ -117,6 +118,10 @@ void update_gui_elements() {
   }
   auto display = displays.at(selected_display);
 
+  // Update toggle group
+  toggle_group_set_active(toggle_group, selected_display);
+
+  // Update labels
   gtk_label_set_text(name_label, display.name);
   gtk_label_set_text(description_label, display.description);
 
@@ -135,22 +140,9 @@ void update_gui_elements() {
   update_transform_label(display.transform);
 }
 
-void on_active_toggled(GtkToggleButton *toggle_button, void *data) {
-  // TODO: Functionality of this button group is incomplete!
-  // Untoggle the current button
-  GtkToggleButton *active_button = toggle_buttons.at(selected_display);
-  gtk_toggle_button_set_active(active_button, false);
-  g_signal_connect(active_button, "toggled", G_CALLBACK(on_active_toggled), NULL);
-
-  // Update the global state
-  for (int i = 0; i < displays.size(); i++) {
-    GtkToggleButton *button = toggle_buttons.at(i);
-    if (button == toggle_button) {
-      // auto *display = &displays.at(i);
-      selected_display = i;
-      break;
-    }
-  }
+void on_active_toggled(ToggleGroup *toggle_group, void *data) {
+  selected_display = toggle_group_get_active(toggle_group);
+  update_gui_elements();
 }
 gboolean on_enabled_changed(GtkSwitch *enabled_switch) {
   // Return true to prevent the default handler from running
@@ -324,19 +316,16 @@ GtkWidget *get_window() {
   }
   transform_button_label = GTK_LABEL(gtk_builder_get_object(builder, "transform_button_label"));
 
-  // Attach drawing canvas to empty box
+  // Attach toggle group to empty box
   GtkBox *button_box = GTK_BOX(gtk_builder_get_object(builder, "button_box"));
+  const char *labels[displays.size()];
   for (int i = 0; i < displays.size(); i++) {
     DisplayInfo *display = &displays.at(i);
-    GtkToggleButton *toggle_button =
-        GTK_TOGGLE_BUTTON(gtk_toggle_button_new_with_label(display->name));
-    gtk_widget_set_name(GTK_WIDGET(toggle_button), display->name);
-    gtk_container_add(GTK_CONTAINER(button_box), GTK_WIDGET(toggle_button));
-    if (i != selected_display) {
-      g_signal_connect(toggle_button, "toggled", G_CALLBACK(on_active_toggled), display);
-    }
-    toggle_buttons.push_back(toggle_button);
+    labels[i] = display->name;
   }
+  toggle_group = toggle_group_new(displays.size(), selected_display, labels);
+  g_signal_connect(toggle_group, "changed", G_CALLBACK(on_active_toggled), NULL);
+  gtk_container_add(GTK_CONTAINER(button_box), GTK_WIDGET(toggle_group));
 
   // Add header bar
   GtkWidget *header_bar = GTK_WIDGET(gtk_builder_get_object(builder, "header"));
