@@ -231,11 +231,12 @@ static void on_done(std::vector<DisplayInfo> displays) {
 
 /* Start the daemon */
 void run_server() {
+  // TODO: Rethink ordering
   attach_on_done(on_done);
 
   // Setup
-  wlr_output_init();
   server_init();
+  wlr_output_init();
 
   // Handle events in a loop until signalled
   server_loop();

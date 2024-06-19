@@ -1,3 +1,3 @@
-#include "server/handlers/ArrangeRowHandler.cpp"
+#include "server/handlers/WayDisplaysHandler.cpp"
 
-typedef ArrangeRowHandler DefaultHandler;
+typedef WayDisplaysHandler DefaultHandler;
