@@ -29,4 +29,6 @@ std::vector<DisplayInfo> get_head_infos();
 
 std::vector<DisplayInfo> get_displays();
 
+void attach_on_done(void (*on_done)(std::vector<DisplayInfo>));
+
 void apply_configurations(std::vector<DisplayConfig> configs);

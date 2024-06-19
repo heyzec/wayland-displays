@@ -3,41 +3,19 @@
 #include "outputs/head.hpp"
 #include "outputs/shapes.hpp"
 
-#include "server/handlers/DefaultHandler.cpp"
 #include "utils/fixed24_8.hpp"
 #include "utils/time.cpp"
 
 #include "wlr-output-management-unstable-v1.h"
-#include <unistd.h>
-#include <wayland-client-protocol.h>
-#include <wayland-client.h>
 
 #include <cstring>
 #include <stdio.h>
+#include <unistd.h>
 #include <vector>
 
 template <class T> using vector = std::vector<T>;
 
-/* State required for us to get and set display configs via the protocol */
-struct WlrState {
-  struct wl_display *display;
-  struct zwlr_output_manager_v1 *manager;
-  uint32_t serial;
-
-  /* True iff we initiated a zwlr_output_configuration_v1::apply() request and are waiting for the
-   * next zwlr_output_manager_v1::done() event.
-   * To keep track of events so that we do not respond to config changes initiated by us
-   * (infinite loop).
-   */
-  bool is_updating = false;
-  long long last_updated = 0;
-  /* Keep track of how many updates that occured too fast */
-  int n_bursty_update = 0;
-
-  vector<Head *> heads;
-};
-
-WlrState *state;
+static WlrState *state = new WlrState{};
 
 // ============================================================
 // Handlers and listeners for zwlr_output_manager
@@ -57,6 +35,8 @@ static void head(void *data, struct zwlr_output_manager_v1 *manager,
 
 static void done(void *data, struct zwlr_output_manager_v1 *manager, uint32_t serial) {
   printf("==Done==\n");
+  auto state = (WlrState *)data;
+
   state->serial = serial;
   if (state->is_updating) {
     // We ignore this event as it is caused by us requesting a config change previously
@@ -65,16 +45,9 @@ static void done(void *data, struct zwlr_output_manager_v1 *manager, uint32_t se
   }
   state->is_updating = false;
 
-  auto displays = get_head_infos();
-  // Call the default handler
-  auto handler = DefaultHandler();
-  vector<DisplayConfig> *changes = handler.handle(&displays);
-  if (changes != nullptr) {
-    // TODO: Sleep for a short time since there can be multiple DONE events, e.g.
-    // another display outputs manager is setting heads too
-    // But we need to retrieve the new serials too, else our request will be invalid.
-    usleep(200);
-    apply_configurations(*changes);
+  // Run the callback if attached
+  if (state->on_done != nullptr) {
+    state->on_done(get_head_infos());
   }
 }
 
@@ -114,7 +87,7 @@ static const struct wl_registry_listener registry_listener = {
 // ============================================================
 
 void wlr_output_init() {
-  state = new WlrState{};
+  // state = new WlrState{};
   // Connect to compositor and get the Wayland display singleton
   wl_display *display = wl_display_connect(NULL);
   if (!display) {
@@ -204,6 +177,10 @@ vector<DisplayInfo> get_displays() {
   // TODO: GUI shouldn't rely on this function
   // wlr_output_deinit();
   return displays;
+}
+
+void attach_on_done(void (*on_done)(std::vector<DisplayInfo>)) {
+  state->on_done = on_done;
 }
 
 void apply_configurations(vector<DisplayConfig> configs) {

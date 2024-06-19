@@ -1,3 +1,4 @@
+#include "server/handlers/DefaultHandler.cpp"
 #include "server/ipc.cpp"
 
 #include "outputs/outputs.hpp"
@@ -200,8 +201,22 @@ void server_loop() {
   }
 }
 
+static void on_done(std::vector<DisplayInfo> displays) {
+  auto handler = DefaultHandler();
+  std::vector<DisplayConfig> *changes = handler.handle(&displays);
+  if (changes != nullptr) {
+    // TODO: Sleep for a short time since there can be multiple DONE events, e.g.
+    // another display outputs manager is setting heads too
+    // But we need to retrieve the new serials too, else our request will be invalid.
+    usleep(200);
+    apply_configurations(*changes);
+  }
+}
+
 /* Start the daemon */
 void run_server() {
+  attach_on_done(on_done);
+
   // Setup
   wlr_output_init();
   server_init();
