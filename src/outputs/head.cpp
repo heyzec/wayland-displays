@@ -33,10 +33,13 @@ static void mode(void *data, struct zwlr_output_head_v1 *wlr_head, zwlr_output_m
   // We need to store the zwlr_output_mode_v1 objects in order to determine which mode is current
   auto head = (Head *)data;
   int index = head->modes.size();
-  Mode mode = Mode{};
-  mode.wlr_mode = wlr_mode;
+  Mode *mode = new Mode{
+      .head = head,
+      .wlr_mode = wlr_mode,
+  };
   head->modes.push_back(mode);
-  zwlr_output_mode_v1_add_listener(wlr_mode, get_mode_listener(), &head->modes.at(index));
+  head->info.modes.push_back(mode->info);
+  zwlr_output_mode_v1_add_listener(wlr_mode, get_mode_listener(), head->modes.at(index));
 }
 
 static void enabled(void *data, struct zwlr_output_head_v1 *wlr_head, const int32_t enabled) {
@@ -49,11 +52,11 @@ static void current_mode(void *data, struct zwlr_output_head_v1 *wlr_head,
   // TODO: This function relies on the mode events occuring before the current_mode event,
   // which the protocol actually does not specify as a requirement!
   auto head = (Head *)data;
-  for (Mode mode : head->modes) {
-    if (mode.wlr_mode == wlr_mode) {
-      head->info.size_x = mode.size_x;
-      head->info.size_y = mode.size_y;
-      head->info.rate = mode.rate;
+  for (Mode *mode : head->modes) {
+    if (mode->wlr_mode == wlr_mode) {
+      head->info.size_x = mode->info.size_x;
+      head->info.size_y = mode->info.size_y;
+      head->info.rate = mode->info.rate;
       break;
     }
   }
@@ -75,6 +78,16 @@ static void scale(void *data, struct zwlr_output_head_v1 *wlr_head, const fixed2
   auto head = (Head *)data;
   head->info.scale = fixed_to_float(scale);
   printf("Scale %f\n", fixed_to_float(scale));
+}
+
+static void finished(void *data, struct zwlr_output_head_v1 *wlr_head) {
+  auto head = (Head *)data;
+  auto heads = &head->state->heads;
+
+  heads->erase(std::remove(heads->begin(), heads->end(), head), heads->end());
+  free(head);
+  // Protocol requires us to send a destroy request to release resources
+  zwlr_output_head_v1_destroy(wlr_head);
 }
 
 static void make(void *data, struct zwlr_output_head_v1 *head, const char *make) {
@@ -106,6 +119,7 @@ static const struct zwlr_output_head_v1_listener head_listener = {
     .position = position,
     .transform = transform,
     .scale = scale,
+    .finished = finished,
     .make = make,
     .model = model,
     .serial_number = serial_number,

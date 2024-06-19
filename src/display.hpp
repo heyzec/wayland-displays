@@ -26,20 +26,50 @@ struct DisplayConfig {
   void show();
 };
 
+struct ModeInfo {
+  /* Width of the output in hardware units */
+  int size_x;
+  /* Height of the output in hardware units */
+  int size_y;
+  /* Fixed vertical hardware refresh rate in mHz */
+  int rate;
+  /* Whether this mode is preferred */
+  bool preferred;
+};
+
 struct DisplayInfo : DisplayConfig {
   char *description;
 
   int phy_x;
   int phy_y;
 
+  std::vector<ModeInfo> modes;
+
   /* For easy debugging */
   void show();
 };
 
-typedef std::vector<DisplayConfig> DisplayConfigVector;
-typedef std::vector<DisplayInfo> DisplayInfoVector;
-
 namespace YAML {
+template <> struct convert<ModeInfo> {
+  static Node encode(const ModeInfo &rhs) {
+    Node node;
+    node["WIDTH"] = rhs.size_x;
+    node["HEIGHT"] = rhs.size_y;
+    node["REFRESH_MHZ"] = rhs.rate;
+    node["PREFERRED"] = rhs.preferred;
+    return node;
+  }
+
+  static bool decode(const Node &node, ModeInfo &rhs) {
+    rhs.size_x = node["WIDTH"].as<int>();
+    rhs.size_y = node["HEIGHT"].as<int>();
+    rhs.rate = node["REFRESH_MHZ"].as<int>();
+    rhs.preferred = node["PREFERRED"].as<bool>();
+
+    return true;
+  }
+};
+
 template <> struct convert<DisplayConfig> {
   static Node encode(const DisplayConfig &rhs) {
     Node node;
@@ -81,6 +111,7 @@ template <> struct convert<DisplayInfo> {
     node["DESCRIPTION"] = rhs.description;
     node["WIDTH_MM"] = rhs.phy_x;
     node["HEIGHT_MM"] = rhs.phy_y;
+    node["MODES"] = rhs.modes;
     return node;
   }
 
@@ -89,6 +120,7 @@ template <> struct convert<DisplayInfo> {
     rhs.description = strdup(node["DESCRIPTION"].as<std::string>().c_str());
     rhs.phy_x = node["WIDTH_MM"].as<int>();
     rhs.phy_y = node["HEIGHT_MM"].as<int>();
+    rhs.modes = node["MODES"].as<std::vector<ModeInfo>>();
 
     return true;
   }

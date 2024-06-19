@@ -26,7 +26,10 @@ static void head(void *data, struct zwlr_output_manager_v1 *manager,
   auto state = (WlrState *)data;
 
   int index = state->heads.size();
-  Head *head = new Head{};
+  Head *head = new Head{
+      .state = state,
+      .wlr_head = wlr_head,
+  };
   head->wlr_head = wlr_head;
   state->heads.push_back(head);
 
@@ -34,7 +37,6 @@ static void head(void *data, struct zwlr_output_manager_v1 *manager,
 }
 
 static void done(void *data, struct zwlr_output_manager_v1 *manager, uint32_t serial) {
-  printf("==Done==\n");
   auto state = (WlrState *)data;
 
   state->serial = serial;
@@ -165,9 +167,17 @@ void cancel_dispatch_events() {
 
 /* Get the current configuration of all displays */
 vector<DisplayInfo> get_head_infos() {
-  auto displays = vector<DisplayInfo>{};
-  for (auto head : state->heads) {
-    displays.push_back(head->info);
+  vector<DisplayInfo> displays = vector<DisplayInfo>{};
+  for (Head *head : state->heads) {
+    DisplayInfo display_info = head->info;
+
+    vector<ModeInfo> mode_infos = vector<ModeInfo>();
+    for (Mode *mode : head->modes) {
+      mode_infos.push_back(mode->info);
+    }
+    display_info.modes = mode_infos;
+
+    displays.push_back(display_info);
   }
   return displays;
 }
