@@ -227,10 +227,18 @@ static void on_done(std::vector<DisplayInfo> displays) {
     usleep(200);
     apply_configurations(*changes);
   }
+
+  // Hacky way to signal GUI to update
+  // TODO: Only signal after our changes are complete
+  string cmd = "pkill -USR1 -f wayland-displays";
+  system(cmd.c_str());
 }
 
 /* Start the daemon */
 void run_server() {
+  // Ignore SIGUSR1, it is meant for GUI
+  std::signal(SIGUSR1, SIG_IGN);
+
   // TODO: Rethink ordering
   attach_on_done(on_done);
 

@@ -13,6 +13,7 @@
 #include "resources.c"
 
 #include <gtk/gtk.h>
+#include <signal.h>
 #include <vector>
 
 #define GRESOURCE_PREFIX "/com/heyzec/wayland-displays/"
@@ -31,6 +32,7 @@ int selected_display = 0;
 CanvasState *canvas_state = new struct CanvasState;
 
 // GTK widgets that we need to set and get values from
+GtkWidget *button_box;
 ToggleGroup *toggle_group;
 GtkSwitch *enabled_switch;
 GtkLabel *description_label;
@@ -255,6 +257,26 @@ void on_apply_clicked(GtkButton *apply_button) {
 // App layout
 // ============================================================
 
+/* Create or replace toggle group */
+void replace_toggle_group(vector<DisplayInfo> displays) {
+  const char *labels[displays.size()];
+  for (int i = 0; i < displays.size(); i++) {
+    DisplayInfo *display = &displays.at(i);
+    labels[i] = display->name;
+  }
+  ToggleGroup *new_toggle_group = toggle_group_new(displays.size(), selected_display, labels);
+  g_signal_connect(new_toggle_group, "changed", G_CALLBACK(on_active_toggled), NULL);
+
+  if (toggle_group != nullptr) {
+    gtk_container_remove(GTK_CONTAINER(button_box), GTK_WIDGET(toggle_group));
+    gtk_container_add(GTK_CONTAINER(button_box), GTK_WIDGET(new_toggle_group));
+    gtk_widget_show_all(GTK_WIDGET(button_box));
+  } else {
+    gtk_container_add(GTK_CONTAINER(button_box), GTK_WIDGET(new_toggle_group));
+  }
+  toggle_group = new_toggle_group;
+}
+
 GtkWidget *get_window() {
   // Create a GtkBuilder instance
   GtkBuilder *builder = gtk_builder_new();
@@ -272,7 +294,7 @@ GtkWidget *get_window() {
   // Get the main window object
   GtkWidget *window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
 
-  // Get and setup drawing canvas
+  // Get and setup drawing canvas (don't draw boxes yet)
   GtkDrawingArea *drawing_area = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "drawing_area"));
   setup_canvas(drawing_area, canvas_state);
 
@@ -311,16 +333,8 @@ GtkWidget *get_window() {
   }
   transform_button_label = GTK_LABEL(gtk_builder_get_object(builder, "transform_button_label"));
 
-  // Attach toggle group to empty box
-  GtkBox *button_box = GTK_BOX(gtk_builder_get_object(builder, "button_box"));
-  const char *labels[displays.size()];
-  for (int i = 0; i < displays.size(); i++) {
-    DisplayInfo *display = &displays.at(i);
-    labels[i] = display->name;
-  }
-  toggle_group = toggle_group_new(displays.size(), selected_display, labels);
-  g_signal_connect(toggle_group, "changed", G_CALLBACK(on_active_toggled), NULL);
-  gtk_container_add(GTK_CONTAINER(button_box), GTK_WIDGET(toggle_group));
+  // Get container for toggle group (don't create it yet)
+  button_box = GTK_WIDGET(gtk_builder_get_object(builder, "button_box"));
 
   // Add header bar
   GtkWidget *header_bar = GTK_WIDGET(gtk_builder_get_object(builder, "header"));
@@ -334,26 +348,46 @@ GtkWidget *get_window() {
 // ============================================================
 // Entry Point
 // ============================================================
+//
 
-void run_gui() {
+void update_displays_from_server() {
   // Get displays state via IPC
   YAML::Node node;
   node["OP"] = "GET";
   YAML::Node response = send_ipc_request(node);
   displays = response["STATE"]["HEADS"].as<vector<DisplayInfo>>();
+}
 
-  auto on_canvas_updated = [](const CanvasState canvas_state) {
+/* On SIGUSR1, refresh GUI */
+void usr1_signal_handler(int signal) {
+  update_displays_from_server();
+  replace_toggle_group(displays);
+
+  update_canvas();
+  update_gui_elements();
+}
+
+void run_gui() {
+  signal(SIGUSR1, usr1_signal_handler);
+
+  update_displays_from_server();
+
+  gtk_init(NULL, NULL); // NULL, NULL instead of argc, argv
+
+  // Setup contents in window
+  GtkWidget *window = get_window();
+  replace_toggle_group(displays);
+
+  // Update content values in window
+  update_canvas();
+  update_gui_elements();
+
+  attach_canvas_updated_callback([](const CanvasState canvas_state) {
     update_displays_from_boxes(&displays, canvas_state);
     update_gui_elements();
-  };
+  });
 
-  canvas_state->boxes = create_boxes_from_displays(displays);
-  attach_canvas_updated_callback(on_canvas_updated);
-  gtk_init(NULL, NULL); // NULL, NULL instead of argc, argv
-  GtkWidget *window = get_window();
-
-  update_gui_elements();
-  gtk_widget_show_all(window);
+  gtk_widget_show_all(window); // Mark all widgets to be displayed
   gtk_main();
 
   // g_object_unref(builder);

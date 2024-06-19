@@ -38,6 +38,8 @@ static void done(void *data, struct zwlr_output_manager_v1 *manager, uint32_t se
   auto state = (WlrState *)data;
 
   state->serial = serial;
+
+  // TODO: Let the server decide what to do, rather than masking the event
   if (state->is_updating) {
     // We ignore this event as it is caused by us requesting a config change previously
     state->is_updating = false;
