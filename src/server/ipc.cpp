@@ -16,22 +16,22 @@ YAML::Node handle_set(YAML::Node yaml) {
   return YAML::Node{};
 }
 
-YAML::Node handle_ipc_request(YAML::Node yaml) {
+YAML::Node handle_ipc_request(YAML::Node request) {
   printf("Someone's knocking...\n");
   YAML::Node null = YAML::Node();
 
-  if (!yaml.IsMap()) {
+  if (!request.IsMap()) {
     // Invalid yaml
     printf("IPC request is invalid, ignoring\n");
     return null;
   }
 
-  std::string op = yaml["OP"].as<std::string>();
+  std::string op = request["OP"].as<std::string>();
   if (strcmp(op.c_str(), "GET") == 0) {
-    return handle_get(yaml);
+    return handle_get(request);
   }
   if (strcmp(op.c_str(), "SET") == 0) {
-    return handle_set(yaml);
+    return handle_set(request);
   }
 
   // Unable to reply now, keep socket open and we will reply later

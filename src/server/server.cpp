@@ -24,6 +24,8 @@
 
 using string = std::string;
 
+YAML::Node config;
+
 /* File descriptor of server socket */
 int fd_server_sock;
 /* File descriptor of client socket, if client IPC request not handled within in one loop */
@@ -40,6 +42,17 @@ pollfd *pfd_signal;
 // ============================================================
 // Helper functions (avoid using global variables)
 // ============================================================
+
+static YAML::Node get_config() {
+  std::string config_path = get_config_path();
+  bool ok = std::filesystem::exists(config_path);
+  if (!ok) {
+    return YAML::Node{};
+  }
+
+  YAML::Node config = YAML::LoadFile(get_config_path());
+  return config;
+}
 
 int ipc_socket_create(const char *socket_path) {
   // Create a UNIX domain socket
@@ -100,7 +113,10 @@ int setup_signals() {
 void server_init() {
   string socket_path = get_socket_path();
   fd_server_sock = ipc_socket_create(socket_path.c_str());
+
   fd_signal = setup_signals();
+
+  config = get_config();
 }
 
 void server_deinit() {
@@ -126,13 +142,13 @@ void reset_all_pfds() {
 // ============================================================
 
 bool handle_socket(int client_sock) {
-  YAML::Node yaml = socket_read(client_sock);
-  YAML::Node node = handle_ipc_request(yaml);
-  if (node.IsNull()) {
+  YAML::Node request = socket_read(client_sock);
+  YAML::Node response = handle_ipc_request(request);
+  if (response.IsNull()) {
     return true;
   }
 
-  socket_write(client_sock, node);
+  socket_write(client_sock, response);
   return true;
 }
 
@@ -203,7 +219,7 @@ void server_loop() {
 
 static void on_done(std::vector<DisplayInfo> displays) {
   auto handler = DefaultHandler();
-  std::vector<DisplayConfig> *changes = handler.handle(&displays);
+  std::vector<DisplayConfig> *changes = handler.handle(&displays, config);
   if (changes != nullptr) {
     // TODO: Sleep for a short time since there can be multiple DONE events, e.g.
     // another display outputs manager is setting heads too
