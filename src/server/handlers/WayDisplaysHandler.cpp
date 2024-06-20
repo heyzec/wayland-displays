@@ -58,6 +58,25 @@ static vector<DisplayInfo> order_displays(vector<DisplayInfo> original, YAML::No
   return sorted;
 }
 
+/* For each display, select the best mode based on a naive scoring method */
+static vector<DisplayInfo> set_mode_for_displays(vector<DisplayInfo> displays) {
+  for (auto &display : displays) {
+    ModeInfo best;
+    int best_score = 0;
+    for (auto mode : display.modes) {
+      int score = mode.size_x * mode.size_y + mode.rate / 1000;
+      if (score > best_score) {
+        best = mode;
+        best_score = score;
+      }
+    }
+    display.size_x = best.size_x;
+    display.size_y = best.size_y;
+    display.rate = best.rate;
+  }
+  return displays;
+}
+
 /* Arrange and align displays. */
 static vector<DisplayInfo> arrange_displays(vector<DisplayInfo> displays, Arrange arrange,
                                             Align align) {
@@ -107,19 +126,22 @@ public:
     vector<DisplayInfo> enabled = *heads;
     vector<DisplayInfo> disabled;
 
+    // 1) Determine whether to enable or disable each display
     if (config["DISABLED"].IsSequence()) {
       filter_disabled(&enabled, &disabled, config["DISABLED"]);
     }
 
+    // 2) Determine the mode for each display
+    enabled = set_mode_for_displays(enabled);
+
+    // 3) Determine the position for each display
     if (config["ORDER"].IsSequence()) {
       enabled = order_displays(enabled, config["ORDER"]);
     }
-
     Arrange arrange = ROW;
     if (config["ARRANGE"].IsScalar() && config["ARRANGE"].as<string>() == "COLUMN") {
       arrange = COLUMN;
     }
-
     Align align = MIDDLE;
     if (config["ALIGN"].IsScalar()) {
       string arrange_s = config["ALIGN"].as<string>();
@@ -129,14 +151,14 @@ public:
         align = BOTTOM_OR_RIGHT;
       }
     }
-
     enabled = arrange_displays(enabled, arrange, align);
 
     vector<DisplayConfig> *changes = new vector<DisplayConfig>();
     changes->reserve(heads->size());
-    // TODO: If display is disabled already, we have problem determining the ideal size to set
     for (DisplayConfig display : enabled) {
       display.enabled = true;
+      // Hardcode to 1.0 for now
+      display.scale = 1.0;
       changes->push_back(display);
     }
     for (DisplayConfig display : disabled) {
