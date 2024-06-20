@@ -14,6 +14,7 @@
 
 #include <gtk/gtk.h>
 #include <signal.h>
+#include <string>
 #include <vector>
 
 #define GRESOURCE_PREFIX "/com/heyzec/wayland-displays/"
@@ -42,6 +43,7 @@ GtkSpinButton *size_x_spin;
 GtkSpinButton *size_y_spin;
 GtkSpinButton *dpi_spin;
 GtkSpinButton *rate_spin;
+GtkComboBoxText *modes_combobox;
 GtkLabel *transform_button_label;
 GtkPopover *transform_menu;
 
@@ -105,6 +107,26 @@ void update_canvas() {
 // Set and get values (with callbacks attached to GUI elements)
 // ============================================================
 
+void update_available_modes(DisplayInfo display) {
+  // TODO: Do not call this function on drag! The app is lagging
+  gtk_combo_box_text_remove_all(modes_combobox);
+  for (int i = 0; i < display.modes.size(); i++) {
+    ModeInfo mode = display.modes.at(i);
+    string id = std::to_string(i);
+
+    std::stringstream buf;
+    buf << mode.size_x << "x" << mode.size_y << "@";
+    buf << (float)mode.rate / 1000 << "Hz";
+    string text = buf.str();
+
+    gtk_combo_box_text_append(modes_combobox, id.c_str(), text.c_str());
+  }
+
+  // Cap max height to 10
+  int n_columns = display.modes.size() / 10 + 1;
+  gtk_combo_box_set_wrap_width(GTK_COMBO_BOX(modes_combobox), n_columns);
+}
+
 void update_transform_label(int enum_value) {
   const char transform_readable[][20] = {
       "Normal",  "Rotate 90",          "Rotate 180",          "Rotate 270",
@@ -135,6 +157,8 @@ void update_gui_elements() {
   gtk_spin_button_set_value(size_y_spin, display.size_y);
   gtk_spin_button_set_value(dpi_spin, display.scale);
   gtk_spin_button_set_value(rate_spin, (float)display.rate / 1000);
+
+  update_available_modes(display);
 
   // Update transform button label
   update_transform_label(display.transform);
@@ -186,6 +210,29 @@ void on_rate_changed(GtkSpinButton *rate_button) {
     displays.at(selected_display).rate = gtk_spin_button_get_value(rate_button) * 1000;
     update_canvas();
   }
+}
+
+void on_mode_changed(GtkComboBoxText *combo_box, void *data) {
+  if (selected_display == -1) {
+    return;
+  }
+  const gchar *id = gtk_combo_box_get_active_id(GTK_COMBO_BOX(combo_box));
+  if (id == nullptr) {
+    return;
+  }
+
+  int index = std::stoi(id);
+  DisplayInfo *display = &displays.at(selected_display);
+
+  display->size_x = display->modes.at(index).size_x;
+  display->size_y = display->modes.at(index).size_y;
+  display->rate = display->modes.at(index).rate;
+  gtk_spin_button_set_value(size_x_spin, display->size_x);
+  gtk_spin_button_set_value(size_y_spin, display->size_y);
+  gtk_spin_button_set_value(dpi_spin, display->scale);
+  gtk_spin_button_set_value(rate_spin, (float)display->rate / 1000);
+
+  update_canvas();
 }
 
 void on_transform_menu_clicked(GtkWidget *transform_button) {
@@ -318,6 +365,9 @@ GtkWidget *get_window() {
   g_signal_connect(dpi_spin, "value-changed", G_CALLBACK(on_dpi_changed), NULL);
   rate_spin = GTK_SPIN_BUTTON(gtk_builder_get_object(builder, "rate_spin"));
   g_signal_connect(rate_spin, "value-changed", G_CALLBACK(on_rate_changed), NULL);
+
+  modes_combobox = GTK_COMBO_BOX_TEXT(gtk_builder_get_object(builder, "modes_combobox"));
+  g_signal_connect(modes_combobox, "changed", G_CALLBACK(on_mode_changed), NULL);
 
   // Get apply button and attach event handler
   GtkButton *apply_button = GTK_BUTTON(gtk_builder_get_object(builder, "apply_button"));
