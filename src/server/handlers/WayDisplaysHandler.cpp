@@ -15,20 +15,97 @@ enum Align {
   BOTTOM_OR_RIGHT,
 };
 
-/* Removes displays meant to be disabled from original and place then in the disabled vector.
- * Each display is matched fully by name.
+// ============================================================
+// Utilities
+// ============================================================
+
+static bool does_display_match(const DisplayInfo display, const string pattern) {
+  return display.name == pattern or display.description == pattern;
+}
+
+/**
+ * Find display in vector that is matched fully by name or description.
+ */
+static int find_display(const vector<DisplayInfo> displays, const string pattern) {
+  for (int i = 0; i < displays.size(); i++) {
+    auto display = displays.at(i);
+    if (does_display_match(display, pattern)) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+static std::pair<vector<DisplayInfo>, vector<DisplayInfo>>
+match_displays(const vector<DisplayInfo> displays, const vector<string> patterns) {
+  vector<DisplayInfo> unmatched = displays;
+  vector<DisplayInfo> matched;
+
+  for (auto pattern : patterns) {
+    int index = find_display(unmatched, pattern);
+    if (index != -1) {
+      matched.push_back(unmatched.at(index));
+      unmatched.erase(unmatched.begin() + index);
+    }
+  }
+
+  return std::pair(matched, unmatched);
+}
+
+/**
+ * Finds and returns a subset of displays from the given vector that match the provided patterns.
+ * Each display can only be matched once.
+ * If no match is found for a pattern, an empty vector is returned.
+ */
+vector<DisplayInfo> find_displays(const vector<DisplayInfo> displays,
+                                  const vector<string> patterns) {
+  auto [matched, unmatched] = match_displays(displays, patterns);
+  return matched;
+}
+
+static bool does_profile_match(const vector<DisplayInfo> displays, const YAML::Node profile) {
+  YAML::Node heads = profile["DISPLAYS"];
+  if (!(heads.IsSequence())) {
+    return false;
+  }
+  vector<string> patterns = heads.as<vector<string>>();
+  return find_displays(displays, patterns).size() > 0;
+}
+
+// ============================================================
+// Helpers
+// ============================================================
+
+static YAML::Node find_matching_profile(const vector<DisplayInfo> displays,
+                                        const YAML::Node profiles) {
+  YAML::Node profile;
+
+  for (YAML::const_iterator it = profiles.begin(); it != profiles.end(); it++) {
+    std::string profile_name = it->first.as<std::string>();
+    YAML::Node p = it->second;
+
+    if (does_profile_match(displays, p)) {
+      profile = p;
+      break;
+    }
+  }
+
+  return profile;
+}
+
+/**
+ * Removes displays meant to be disabled from original and place then in the disabled vector.
+ * Each display is matched fully by name or description.
  */
 static void filter_disabled(vector<DisplayInfo> *original, vector<DisplayInfo> *disabled,
-                            YAML::Node specified) {
-  for (auto d : specified) {
-    string match = d.as<string>();
-    for (int i = 0; i < original->size(); i++) {
-      auto head = original->at(i);
-      if (match == head.name) {
-        disabled->push_back(head);
-        original->erase(original->begin() + i);
-        break;
-      }
+                            const YAML::Node nodes) {
+  vector<string> patterns = nodes.as<vector<string>>();
+  for (auto pattern : patterns) {
+    int index = find_display(*original, pattern);
+    if (index != -1) {
+      disabled->push_back(original->at(index));
+      original->erase(original->begin() + index);
+      break;
     }
   }
 }
@@ -37,25 +114,14 @@ static void filter_disabled(vector<DisplayInfo> *original, vector<DisplayInfo> *
  * Each display is matched fully by name or description.
  * Unmatched displays are placed last.
  */
-static vector<DisplayInfo> order_displays(vector<DisplayInfo> original, YAML::Node order) {
-  vector<DisplayInfo> sorted;
-
-  for (auto o : order) {
-    string match = o.as<string>();
-    for (int i = 0; i < original.size(); i++) {
-      auto head = original.at(i);
-      if (match == head.name || match == head.description) {
-        sorted.push_back(head);
-        original.erase(original.begin() + i);
-        break;
-      }
-    }
-  }
+static vector<DisplayInfo> order_displays(const vector<DisplayInfo> displays, YAML::Node order) {
+  vector<string> patterns = order.as<vector<string>>();
+  auto [ordered, unordered] = match_displays(displays, patterns);
 
   // Append the remaining heads
-  sorted.reserve(sorted.size() + distance(original.begin(), original.end()));
-  sorted.insert(sorted.end(), original.begin(), original.end());
-  return sorted;
+  ordered.reserve(ordered.size() + distance(unordered.begin(), unordered.end()));
+  ordered.insert(ordered.end(), unordered.begin(), unordered.end());
+  return ordered;
 }
 
 /* For each display, select the best mode based on a naive scoring method */
@@ -123,28 +189,35 @@ static vector<DisplayInfo> arrange_displays(vector<DisplayInfo> displays, Arrang
 class WayDisplaysHandler : BaseHandler {
 public:
   vector<DisplayConfig> *handle(vector<DisplayInfo> *heads, YAML::Node config) override {
+    YAML::Node profiles = config["PROFILES"];
+    YAML::Node profile = find_matching_profile(*heads, profiles);
+
     vector<DisplayInfo> enabled = *heads;
     vector<DisplayInfo> disabled;
 
     // 1) Determine whether to enable or disable each display
-    if (config["DISABLED"].IsSequence()) {
-      filter_disabled(&enabled, &disabled, config["DISABLED"]);
+    if (profile["DISABLED"].IsSequence()) {
+      filter_disabled(&enabled, &disabled, profile["DISABLED"]);
     }
 
     // 2) Determine the mode for each display
     enabled = set_mode_for_displays(enabled);
 
     // 3) Determine the position for each display
-    if (config["ORDER"].IsSequence()) {
-      enabled = order_displays(enabled, config["ORDER"]);
+    if (profile["ORDER"].IsSequence()) {
+      enabled = order_displays(enabled, profile["ORDER"]);
     }
+    if (profile["DISPLAYS"].IsSequence()) {
+      enabled = order_displays(enabled, profile["DISPLAYS"]);
+    }
+
     Arrange arrange = ROW;
-    if (config["ARRANGE"].IsScalar() && config["ARRANGE"].as<string>() == "COLUMN") {
+    if (profile["ARRANGE"].IsScalar() && profile["ARRANGE"].as<string>() == "COLUMN") {
       arrange = COLUMN;
     }
     Align align = MIDDLE;
-    if (config["ALIGN"].IsScalar()) {
-      string arrange_s = config["ALIGN"].as<string>();
+    if (profile["ALIGN"].IsScalar()) {
+      string arrange_s = profile["ALIGN"].as<string>();
       if (arrange_s == "TOP" || arrange_s == "LEFT") {
         align = TOP_OR_LEFT;
       } else if (arrange_s == "BOTTOM" || arrange_s == "RIGHT") {
