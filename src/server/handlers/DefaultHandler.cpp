@@ -1,3 +1,3 @@
-#include "server/handlers/WayDisplaysHandler.cpp"
+#include "server/handlers/WayDisplaysHandler/WayDisplaysHandler.cpp"
 
 typedef WayDisplaysHandler DefaultHandler;
