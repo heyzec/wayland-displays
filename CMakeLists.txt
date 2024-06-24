@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.26)
 # The compiler and linker is usually determined by the file extension if not set otherwise
 project(wayland-displays VERSION 1.0 LANGUAGES C CXX)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 # Get ${SOURCES}
 include(src/CMakeLists.txt)
@@ -12,9 +12,27 @@ include(lib/CMakeLists.txt)
 
 add_executable(wayland-displays ${SOURCES} ${LIB_SOURCES})
 
+target_link_libraries(wayland-displays PRIVATE handlers)
+
 # Add the main source of headers
 include_directories("src/")
 include_directories("lib/")
+
+########################################
+# Tests
+########################################
+
+# Must be set before including CTest so that these arguments are applied when
+# running `$ ninja test` or `$ make test`.
+set(CMAKE_CTEST_ARGUMENTS "--output-on-failure")
+
+# Enable CTest support, see https://cmake.org/cmake/help/latest/module/CTest.html
+include(CTest)
+
+# Add testing code only if this variable is ON
+if(BUILD_TESTING)
+  add_subdirectory(tests)
+endif()
 
 ########################################
 # Dependencies

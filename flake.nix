@@ -16,6 +16,9 @@
             {
               name = "wayland-displays";
 
+              # Call Makefile targets instead of CMake
+              dontUseCmakeConfigure = true;
+
               # Filtered list of source files
               src = lib.sourceByRegex ./. [
                 "Makefile"
@@ -25,6 +28,7 @@
                 "^cmake.*"
                 "^protocols.*"
                 "^resources.*"
+                "^tests.*"
               ];
 
               # Needed at compile time
@@ -38,9 +42,15 @@
                 wayland-scanner
                 nlohmann_json
                 yaml-cpp
+                catch2_3
               ];
 
               buildInputs = [ ];
+
+              makeFlags = [
+                "PREFIX=${placeholder "out"}"
+              ];
+
               doCheck = true;
             };
 
