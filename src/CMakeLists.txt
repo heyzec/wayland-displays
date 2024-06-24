@@ -5,6 +5,7 @@ set(SOURCES
     outputs/config.cpp
     outputs/mode.cpp
     utils/fixed24_8.cpp
+    server/handlers/WayDisplaysHandler/utils.cpp
     display.cpp
     main.cpp
 )
