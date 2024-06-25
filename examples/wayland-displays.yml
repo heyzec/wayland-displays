@@ -1,0 +1,25 @@
+PROFILES:
+  home:
+    DISPLAYS:
+      - 'eDP-1'
+      - 'DP-5'
+
+    ORDER:
+      - 'eDP-1'
+      - 'DP-5'
+
+    ARRANGE: ROW
+    ALIGN: BOTTOM
+
+    # DISABLED:
+    #   - 'eDP-1'
+
+  standalone:
+    DISPLAYS:
+      - 'eDP-1'
+
+    ORDER:
+      - 'eDP-1'
+
+    ARRANGE: ROW
+    ALIGN: BOTTOM
