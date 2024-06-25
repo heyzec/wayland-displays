@@ -1,12 +1,17 @@
 #include "server/handlers/WayDisplaysHandler/utils.hpp"
 
+#include <regex>
 #include <string>
 
 using string = std::string;
 template <class T> using vector = std::vector<T>;
 
 bool does_display_match(const DisplayInfo display, const string pattern) {
-  return display.name == pattern or display.description == pattern;
+  if (pattern[0] != '!') {
+    return display.name == pattern || display.description == pattern;
+  }
+  std::regex regex = std::regex(pattern.substr(1));
+  return std::regex_search(display.name, regex) || std::regex_search(display.description, regex);
 }
 
 /**

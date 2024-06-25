@@ -1,25 +1,26 @@
 PROFILES:
   home:
     DISPLAYS:
-      - 'eDP-1'
-      - 'DP-5'
+      - '!^Beihai Century.+(DP-\d)'
+      - '!^Sharp Corporation.+(eDP-\d)'
 
     ORDER:
-      - 'eDP-1'
-      - 'DP-5'
+      - '!^Sharp Corporation.+(eDP-\d)'
+      - '!^Beihai Century.+(DP-\d)'
 
     ARRANGE: ROW
     ALIGN: BOTTOM
 
     # DISABLED:
-    #   - 'eDP-1'
+    #   - '!^eDP-\d'
 
   standalone:
     DISPLAYS:
-      - 'eDP-1'
+      - '!^eDP-\d'
 
     ORDER:
-      - 'eDP-1'
+      - '!^DP-\d'
+      - '!^eDP-\d'
 
     ARRANGE: ROW
     ALIGN: BOTTOM
