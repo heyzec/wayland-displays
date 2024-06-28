@@ -9,6 +9,8 @@ BUILD_DIR ?= build
 # Whether to build test functions
 BUILD_TESTING ?= OFF
 
+MAKE_FLAGS ?= -j $$(nproc)
+
 # Target-specific variables
 test: BUILD_TESTING := ON
 
@@ -31,7 +33,7 @@ configure: $(SRC)
 
 # Build the project
 build: configure
-	cd $(BUILD_DIR) && $(MAKE)
+	cd $(BUILD_DIR) && $(MAKE) $(MAKE_FLAGS)
 
 # Build the project with test functions, then run it
 test: build

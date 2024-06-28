@@ -18,6 +18,7 @@
 
               # Call Makefile targets instead of CMake
               dontUseCmakeConfigure = true;
+              enableParallelBuilding = true; # dontUseCmakeConfigure seems to set this to false
 
               # Filtered list of source files
               src = lib.sourceByRegex ./. [
