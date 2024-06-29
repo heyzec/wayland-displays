@@ -1,6 +1,6 @@
 #include "server/handlers/DefaultHandler.cpp"
 
-#include "display.hpp"
+#include "common/shapes.hpp"
 #include "outputs/outputs.hpp"
 
 #include <yaml-cpp/yaml.h>

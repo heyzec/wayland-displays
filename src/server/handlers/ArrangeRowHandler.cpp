@@ -1,6 +1,6 @@
 #include "server/handlers/BaseHandler.cpp"
 
-#include "display.hpp"
+#include "common/shapes.hpp"
 
 /* Arrange discovered displays in a row. */
 class ArrangeRowHandler : BaseHandler {

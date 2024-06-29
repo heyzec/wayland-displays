@@ -1,6 +1,6 @@
 #pragma once
 
-#include "display.hpp"
+#include "common/shapes.hpp"
 #include "server/handlers/WayDisplaysHandler/shapes.cpp"
 
 #include <string>

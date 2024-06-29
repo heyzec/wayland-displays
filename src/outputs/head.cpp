@@ -6,8 +6,8 @@
 #include "outputs/mode.hpp"
 #include "outputs/shapes.hpp"
 
-#include "display.hpp"
-#include "utils/fixed24_8.hpp"
+#include "common/fixed24_8.hpp"
+#include "common/shapes.hpp"
 
 #include "wlr-output-management-unstable-v1.h"
 #include <wayland-client-protocol.h>

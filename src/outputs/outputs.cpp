@@ -3,8 +3,8 @@
 #include "outputs/head.hpp"
 #include "outputs/shapes.hpp"
 
-#include "utils/fixed24_8.hpp"
-#include "utils/time.cpp"
+#include "common/fixed24_8.hpp"
+#include "common/time.hpp"
 
 #include "wlr-output-management-unstable-v1.h"
 

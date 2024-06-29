@@ -1,13 +1,12 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
 #include <yaml-cpp/yaml.h>
 
+#include <string.h>
 #include <string>
 #include <vector>
 
 using string = std::string;
-using json = nlohmann::ordered_json;
 
 struct DisplayConfig {
   char *name;
@@ -126,6 +125,3 @@ template <> struct convert<DisplayInfo> {
   }
 };
 } // namespace YAML
-
-// void to_json(json &j, const Mode &m);
-// void to_json(json &j, const Display &d);

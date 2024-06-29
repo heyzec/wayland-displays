@@ -1,13 +1,10 @@
 #pragma once
 
-#include "utils/ipc.cpp"
-
-#include "display.hpp"
 #include "gui/canvas.hpp"
-#include "togglegroup/togglegroup.hpp"
 
-// TODO: Do not rely on these files directly
-#include "outputs/outputs.hpp"
+#include "common/ipc.cpp"
+#include "common/shapes.hpp"
+#include "togglegroup/togglegroup.hpp"
 
 #include "resources.c"
 

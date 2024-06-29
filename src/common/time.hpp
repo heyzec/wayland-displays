@@ -1,6 +1,6 @@
 #include <sys/time.h>
 
-long long time_in_ms(void) {
+inline long long time_in_ms(void) {
   struct timeval tv;
 
   gettimeofday(&tv, nullptr);

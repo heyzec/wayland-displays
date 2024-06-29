@@ -4,9 +4,8 @@ set(SOURCES
     outputs/head.cpp
     outputs/config.cpp
     outputs/mode.cpp
-    utils/fixed24_8.cpp
-    utils/paths.cpp
-    display.cpp
+    common/paths.cpp
+    common/shapes.cpp
     main.cpp
 )
 

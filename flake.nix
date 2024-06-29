@@ -41,7 +41,6 @@
                 cairo
                 wayland
                 wayland-scanner
-                nlohmann_json
                 yaml-cpp
                 catch2_3
               ];

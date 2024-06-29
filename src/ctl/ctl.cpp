@@ -1,7 +1,7 @@
 #pragma once
 
 #include "argparse/argparse.h"
-#include "utils/ipc.cpp"
+#include "common/ipc.cpp"
 #include <yaml-cpp/node/node.h>
 
 void run_ctl(Namespace args) {

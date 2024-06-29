@@ -1,9 +1,9 @@
 #include "server/handlers/DefaultHandler.cpp"
 #include "server/ipc.cpp"
 
+#include "common/paths.hpp"
+#include "common/socket.cpp"
 #include "outputs/outputs.hpp"
-#include "utils/paths.hpp"
-#include "utils/socket.cpp"
 
 #include <yaml-cpp/yaml.h>
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "display.hpp"
+#include "common/shapes.hpp"
 
 #include "wlr-output-management-unstable-v1.h"
 

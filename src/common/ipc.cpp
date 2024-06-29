@@ -1,7 +1,7 @@
 #pragma once
 
-#include "utils/paths.hpp"
-#include "utils/socket.cpp"
+#include "common/paths.hpp"
+#include "common/socket.cpp"
 
 #include <sys/un.h>
 #include <yaml-cpp/yaml.h>
