@@ -1,3 +1,5 @@
+#pragma once
+
 #include <yaml-cpp/yaml.h>
 
 #include <sys/ioctl.h>

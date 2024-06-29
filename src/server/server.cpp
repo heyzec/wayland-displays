@@ -144,7 +144,7 @@ void reset_all_pfds() {
 
 bool handle_socket(int client_sock) {
   YAML::Node request = socket_read(client_sock);
-  YAML::Node response = handle_ipc_request(request);
+  YAML::Node response = handle_ipc_request(request, config);
   if (response.IsNull()) {
     return true;
   }
@@ -220,7 +220,7 @@ void server_loop() {
 
 static void on_done(std::vector<DisplayInfo> displays) {
   auto handler = DefaultHandler();
-  std::vector<DisplayConfig> *changes = handler.handle(&displays, config);
+  std::vector<DisplayConfig> *changes = handler.handle_change(&displays, config);
   if (changes != nullptr) {
     // TODO: Sleep for a short time since there can be multiple DONE events, e.g.
     // another display outputs manager is setting heads too

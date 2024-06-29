@@ -100,17 +100,7 @@ static vector<DisplayInfo> arrange_displays(vector<DisplayInfo> displays, Arrang
 }
 
 class WayDisplaysHandler : BaseHandler {
-public:
-  vector<DisplayConfig> *handle(vector<DisplayInfo> *heads, YAML::Node node) override {
-    Config config = node.as<Config>();
-
-    Profile profile = find_matching_profile(*heads, config.profiles);
-    // TODO: Don't use hacky way to test for non-match
-    if (profile.name == "") {
-      return new vector<DisplayConfig>();
-    }
-    printf("Matched profile: %s\n", profile.name.c_str());
-
+  vector<DisplayConfig> *get_profile_config(Profile profile, vector<DisplayInfo> *heads) {
     vector<DisplayInfo> enabled = *heads;
     vector<DisplayInfo> disabled;
 
@@ -138,5 +128,35 @@ public:
     }
 
     return changes;
+  }
+
+public:
+  vector<DisplayConfig> *handle_change(vector<DisplayInfo> *heads, YAML::Node node) override {
+    Config config = node.as<Config>();
+
+    Profile profile = find_matching_profile(config.profiles, *heads);
+    // TODO: Don't use hacky way to test for non-match
+    if (profile.name == "") {
+      return new vector<DisplayConfig>();
+    }
+    printf("Matched profile: %s\n", profile.name.c_str());
+    return get_profile_config(profile, heads);
+  }
+
+  vector<DisplayConfig> *handle_command(string command, string param, vector<DisplayInfo> *heads,
+                                        YAML::Node node) override {
+    // Only "switch" command supported
+    if (command != "switch") {
+      return new vector<DisplayConfig>();
+    }
+
+    Config config = node.as<Config>();
+    Profile profile = get_profile_by_name(config.profiles, param);
+    // TODO: Don't use hacky way to test for non-match
+    if (profile.name == "") {
+      return new vector<DisplayConfig>();
+    }
+    printf("Switching to profile: %s\n", profile.name.c_str());
+    return get_profile_config(profile, heads);
   }
 };

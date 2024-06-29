@@ -1,11 +1,16 @@
 #include "argparse/argparse.h"
+#include "ctl/ctl.cpp"
 #include "gui/gui.cpp"
 #include "sandbox.cpp"
+#include "server/server.cpp"
 
 int main(int argc, char *argv[]) {
   ArgumentParser parser;
+
   parser.add_argument("-s", "--server")->action(STORE_TRUE)->help("start the daemon");
   parser.add_argument("-g", "--gui")->action(STORE_TRUE)->help("start the GUI app");
+  parser.add_argument("-x", "--switch")->help("activate a profile by name");
+
   Namespace args = parser.parse_args(argc, argv);
 
   if (args.get<bool>("server")) {
@@ -25,6 +30,8 @@ int main(int argc, char *argv[]) {
     // kill(pid, SIGINT);
 
     exit(0);
+  } else {
+    run_ctl(args);
   }
 
   return 0;

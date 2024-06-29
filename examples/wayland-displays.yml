@@ -11,16 +11,16 @@ PROFILES:
     ARRANGE: ROW
     ALIGN: BOTTOM
 
-    # DISABLED:
-    #   - '!^eDP-\d'
-
   standalone:
     DISPLAYS:
       - '!^eDP-\d'
 
     ORDER:
-      - '!^DP-\d'
       - '!^eDP-\d'
 
     ARRANGE: ROW
     ALIGN: BOTTOM
+
+    DISABLED:
+      - '!^DP-\d'
+

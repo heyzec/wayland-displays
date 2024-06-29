@@ -1,3 +1,5 @@
+#include "server/handlers/DefaultHandler.cpp"
+
 #include "display.hpp"
 #include "outputs/outputs.hpp"
 
@@ -16,7 +18,19 @@ YAML::Node handle_set(YAML::Node yaml) {
   return YAML::Node{};
 }
 
-YAML::Node handle_ipc_request(YAML::Node request) {
+YAML::Node handle_switch(YAML::Node yaml, YAML::Node config) {
+  string profile_name = yaml["PROFILE"].as<string>();
+  auto handler = DefaultHandler();
+  std::vector<DisplayInfo> heads = get_head_infos();
+  std::vector<DisplayConfig> *changes =
+      handler.handle_command("switch", profile_name, &heads, config);
+  if (changes != nullptr) {
+    apply_configurations(*changes);
+  }
+  return YAML::Node{};
+}
+
+YAML::Node handle_ipc_request(YAML::Node request, YAML::Node config) {
   printf("Someone's knocking...\n");
   YAML::Node null = YAML::Node();
 
@@ -27,11 +41,15 @@ YAML::Node handle_ipc_request(YAML::Node request) {
   }
 
   std::string op = request["OP"].as<std::string>();
-  if (strcmp(op.c_str(), "GET") == 0) {
+  if (op == "GET") {
     return handle_get(request);
   }
-  if (strcmp(op.c_str(), "SET") == 0) {
+  if (op == "SET") {
     return handle_set(request);
+  }
+
+  if (op == "SWITCH") {
+    return handle_switch(request, config);
   }
 
   // Unable to reply now, keep socket open and we will reply later

@@ -59,10 +59,28 @@ bool does_profile_match(const vector<DisplayInfo> displays, const Profile profil
   return unmatched.size() == 0;
 }
 
-Profile find_matching_profile(const vector<DisplayInfo> displays, const vector<Profile> profiles) {
+/**
+ * Find profile that matches the current display configuration.
+ */
+Profile find_matching_profile(const vector<Profile> profiles, const vector<DisplayInfo> displays) {
   Profile matched;
   for (Profile profile : profiles) {
     if (does_profile_match(displays, profile)) {
+      matched = profile;
+      break;
+    }
+  }
+
+  return matched;
+}
+
+/**
+ * Find profile that matches name fully
+ */
+Profile get_profile_by_name(const vector<Profile> profiles, const string name) {
+  Profile matched;
+  for (Profile profile : profiles) {
+    if (profile.name == name) {
       matched = profile;
       break;
     }

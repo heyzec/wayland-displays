@@ -21,4 +21,6 @@ vector<DisplayInfo> find_displays(const vector<DisplayInfo> displays,
 
 bool does_profile_match(const vector<DisplayInfo> displays, const Profile profile);
 
-Profile find_matching_profile(const vector<DisplayInfo> displays, const vector<Profile> profiles);
+Profile find_matching_profile(const vector<Profile> profiles, const vector<DisplayInfo> displays);
+
+Profile get_profile_by_name(const vector<Profile> profiles, const string name);
