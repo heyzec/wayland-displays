@@ -1,25 +1,26 @@
+#include "common/ipc_request.hpp"
 #include "server/handlers/DefaultHandler.cpp"
 
 #include "common/shapes.hpp"
 #include "outputs/outputs.hpp"
 
+#include <variant>
 #include <yaml-cpp/yaml.h>
 
-YAML::Node handle_get(YAML::Node yaml) {
+YAML::Node handle_get(IpcGetRequest yaml) {
   std::vector<DisplayInfo> heads = get_head_infos();
   YAML::Node node;
   node["STATE"]["HEADS"] = heads;
   return node;
 }
 
-YAML::Node handle_set(YAML::Node yaml) {
-  std::vector<DisplayConfig> displays = yaml["HEADS"].as<std::vector<DisplayConfig>>();
-  apply_configurations(displays);
+YAML::Node handle_set(IpcSetRequest request) {
+  apply_configurations(request.heads);
   return YAML::Node{};
 }
 
-YAML::Node handle_switch(YAML::Node yaml, YAML::Node config) {
-  string profile_name = yaml["PROFILE"].as<string>();
+YAML::Node handle_switch(IpcSwitchRequest request, YAML::Node config) {
+  string profile_name = request.profile_name;
   auto handler = DefaultHandler();
   std::vector<DisplayInfo> heads = get_head_infos();
   std::vector<DisplayConfig> *changes =
@@ -30,28 +31,24 @@ YAML::Node handle_switch(YAML::Node yaml, YAML::Node config) {
   return YAML::Node{};
 }
 
-YAML::Node handle_ipc_request(YAML::Node request, YAML::Node config) {
+YAML::Node handle_ipc_request(IpcRequest request, YAML::Node config) {
+  // TODO: SLAP this function by returning IpcResponse
+
   printf("Someone's knocking...\n");
-  YAML::Node null = YAML::Node();
 
-  if (!request.IsMap()) {
-    // Invalid yaml
-    printf("IPC request is invalid, ignoring\n");
-    return null;
+  if (auto *v = std::get_if<IpcGetRequest>(&request)) {
+    return handle_get(*v);
+  }
+  if (auto *v = std::get_if<IpcSetRequest>(&request)) {
+    return handle_set(*v);
+  }
+  if (auto *v = std::get_if<IpcSwitchRequest>(&request)) {
+    return handle_switch(*v, config);
   }
 
-  std::string op = request["OP"].as<std::string>();
-  if (op == "GET") {
-    return handle_get(request);
-  }
-  if (op == "SET") {
-    return handle_set(request);
-  }
+  // This should not occur
+  return YAML::Node{};
 
-  if (op == "SWITCH") {
-    return handle_switch(request, config);
-  }
-
-  // Unable to reply now, keep socket open and we will reply later
-  return null;
+  // // Unable to reply now, keep socket open and we will reply later
+  // return null;
 }

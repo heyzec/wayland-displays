@@ -3,6 +3,7 @@
 #include "gui/canvas.hpp"
 
 #include "common/ipc.cpp"
+#include "common/ipc_request.hpp"
 #include "common/shapes.hpp"
 #include "togglegroup/togglegroup.hpp"
 
@@ -257,9 +258,7 @@ void on_apply_clicked(GtkButton *apply_button) {
     temp.emplace_back(b);
   }
 
-  YAML::Node request;
-  request["OP"] = "SET";
-  request["HEADS"] = temp;
+  IpcSetRequest request = IpcSetRequest(temp);
 
   // TODO: This will actually block the GTK loop
   send_ipc_request(request);
@@ -369,9 +368,8 @@ GtkWidget *get_window() {
 
 void update_displays_from_server() {
   // Get displays state via IPC
-  YAML::Node node;
-  node["OP"] = "GET";
-  YAML::Node response = send_ipc_request(node);
+  IpcGetRequest request = {};
+  YAML::Node response = send_ipc_request(request);
   displays = response["STATE"]["HEADS"].as<vector<DisplayInfo>>();
 }
 

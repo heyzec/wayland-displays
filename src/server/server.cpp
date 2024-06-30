@@ -1,3 +1,4 @@
+#include "common/ipc_request.hpp"
 #include "server/handlers/DefaultHandler.cpp"
 #include "server/ipc.cpp"
 
@@ -143,7 +144,8 @@ void reset_all_pfds() {
 // ============================================================
 
 bool handle_socket(int client_sock) {
-  YAML::Node request = socket_read(client_sock);
+  YAML::Node yaml = socket_read(client_sock);
+  IpcRequest request = yaml.as<IpcRequest>();
   YAML::Node response = handle_ipc_request(request, config);
   if (response.IsNull()) {
     return true;

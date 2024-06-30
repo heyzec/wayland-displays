@@ -1,12 +1,13 @@
 #pragma once
 
+#include "common/ipc_request.hpp"
 #include "common/paths.hpp"
 #include "common/socket.cpp"
 
 #include <sys/un.h>
 #include <yaml-cpp/yaml.h>
 
-YAML::Node send_ipc_request(YAML::Node request) {
+YAML::Node send_ipc_request(IpcRequest request) {
   // Create a UNIX domain socket
   int fd_client_sock = socket(AF_UNIX, SOCK_STREAM, 0);
   if (fd_client_sock < 0) {
@@ -26,8 +27,10 @@ YAML::Node send_ipc_request(YAML::Node request) {
     exit(1);
   }
 
+  YAML::Node node = YAML::convert<IpcRequest>::encode(request);
+
   // Send request
-  socket_write(fd_client_sock, request);
+  socket_write(fd_client_sock, node);
 
   // Read response
   YAML::Node response = socket_read(fd_client_sock);
