@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <sys/inotify.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
 #include <sys/signalfd.h>
@@ -27,6 +28,7 @@
 using string = std::string;
 
 YAML::Node config;
+const char *config_path;
 
 /* File descriptor of server socket */
 int fd_server_sock;
@@ -34,25 +36,30 @@ int fd_server_sock;
 int fd_client_sock;
 /* File descriptor for signals */
 int fd_signal;
+/* File descriptor for inotify watching config */
+int fd_config;
+
+/* Watch descriptor for inotify */
+int wd = -1;
 
 // Create vector of pollfd structures and named references to them in vector
 std::vector<pollfd> all_pfds;
 pollfd *pfd_ipc;
 pollfd *pfd_wayland;
 pollfd *pfd_signal;
+pollfd *pfd_config;
 
 // ============================================================
 // Helper functions (avoid using global variables)
 // ============================================================
 
-static YAML::Node get_config() {
-  std::string config_path = get_config_path();
+static YAML::Node get_config(const char *config_path) {
   bool ok = std::filesystem::exists(config_path);
   if (!ok) {
     return YAML::Node{};
   }
 
-  YAML::Node config = YAML::LoadFile(get_config_path());
+  YAML::Node config = YAML::LoadFile(config_path);
   return config;
 }
 
@@ -92,6 +99,9 @@ void ipc_socket_destroy(int fd_server_sock, const char *socket_path) {
 }
 
 int setup_signals() {
+  // Ignore SIGUSR1, it is meant for GUI
+  std::signal(SIGUSR1, SIG_IGN);
+
   // Block the signals we're interested in
   sigset_t mask;
   sigemptyset(&mask);
@@ -112,16 +122,44 @@ int setup_signals() {
 // Stateful helper routines
 // ============================================================
 
+void reload_rewatch_config() {
+  if (wd != -1) {
+    // Remove previous watch
+    inotify_rm_watch(fd_config, wd);
+  }
+  config = get_config(config_path);
+  // Add new watch to the file
+  // Note that need reload watch because editors that overwrite file will change file inode
+  wd = inotify_add_watch(fd_config, config_path, IN_MODIFY);
+  if (wd == -1) {
+    perror("inotify");
+  }
+}
+
 void server_init() {
+  // IPC Socket
   string socket_path = get_socket_path();
   fd_server_sock = ipc_socket_create(socket_path.c_str());
 
+  // Signals
   fd_signal = setup_signals();
 
-  config = get_config();
+  // Config file
+  std::string config_path_s = get_config_path();
+  config_path = strdup(config_path_s.c_str());
+  fd_config = inotify_init();
+  reload_rewatch_config();
+
+  // Wayland
+  wlr_output_init(); // This needs to be after config file setup, since it will do a roundtrip,
+                     // triggering handlers,
 }
 
 void server_deinit() {
+  // Wayland
+  wlr_output_deinit();
+
+  // IPC Socket
   string socket_path = get_socket_path();
   ipc_socket_destroy(fd_server_sock, socket_path.c_str());
 }
@@ -137,6 +175,9 @@ void reset_all_pfds() {
 
   all_pfds.push_back({.fd = fd_signal, .events = POLLIN});
   pfd_signal = &all_pfds.back();
+
+  all_pfds.push_back({.fd = fd_config, .events = POLLIN});
+  pfd_config = &all_pfds.back();
 }
 
 // ============================================================
@@ -163,6 +204,25 @@ void complete_socket(int client_sock) {
 // ============================================================
 // Meat of the code
 // ============================================================
+
+static void refresh_displays(std::vector<DisplayInfo> displays_) {
+  // Ignore parameter for now
+
+  auto displays = get_head_infos();
+  std::vector<DisplayConfig> *changes = DefaultHandler().handle_change(&displays, config);
+  if (changes != nullptr) {
+    // TODO: Sleep for a short time since there can be multiple DONE events, e.g.
+    // another display outputs manager is setting heads too
+    // But we need to retrieve the new serials too, else our request will be invalid.
+    usleep(200);
+    apply_configurations(*changes);
+  }
+
+  // Hacky way to signal GUI to update
+  // TODO: Only signal after our changes are complete
+  string cmd = "pkill -USR1 -f wayland-displays";
+  system(cmd.c_str());
+}
 
 void server_loop() {
   while (1) {
@@ -217,42 +277,28 @@ void server_loop() {
         break;
       }
     }
-  }
-}
 
-static void on_done(std::vector<DisplayInfo> displays) {
-  auto handler = DefaultHandler();
-  std::vector<DisplayConfig> *changes = handler.handle_change(&displays, config);
-  if (changes != nullptr) {
-    // TODO: Sleep for a short time since there can be multiple DONE events, e.g.
-    // another display outputs manager is setting heads too
-    // But we need to retrieve the new serials too, else our request will be invalid.
-    usleep(200);
-    apply_configurations(*changes);
+    if (pfd_config->revents) {
+      struct inotify_event ev;
+      read(fd_config, &ev, sizeof(ev));
+      printf("Config changed, reloading\n");
+      reload_rewatch_config();
+      refresh_displays(std::vector<DisplayInfo>());
+    }
   }
-
-  // Hacky way to signal GUI to update
-  // TODO: Only signal after our changes are complete
-  string cmd = "pkill -USR1 -f wayland-displays";
-  system(cmd.c_str());
 }
 
 /* Start the daemon */
 void run_server() {
-  // Ignore SIGUSR1, it is meant for GUI
-  std::signal(SIGUSR1, SIG_IGN);
-
   // TODO: Rethink ordering
-  attach_on_done(on_done);
+  attach_on_done(refresh_displays);
 
   // Setup
   server_init();
-  wlr_output_init();
 
   // Handle events in a loop until signalled
   server_loop();
 
   // Release what resources we can
   server_deinit();
-  wlr_output_deinit();
 }

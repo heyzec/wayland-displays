@@ -87,8 +87,13 @@
               debug = pkgs.writeShellApplication {
                 name = "debug";
                 text = ''
+                  trap "" SIGUSR1
                   # readelf --debug-dump=line  ${config.packages.default.out}/bin/wayland-displays
-                  ${pkgs.gdb}/bin/gdb --args ${wayland-displays-debug}/bin/wayland-displays "$@"
+                  ${pkgs.gdb}/bin/gdb \
+                    --quiet \
+                    --ex "handle SIGUSR1 nostop pass" \
+                    --ex "run" \
+                    --args ${wayland-displays-debug}/bin/wayland-displays "$@"
                 '';
               };
             in
