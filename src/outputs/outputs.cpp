@@ -74,6 +74,10 @@ static void global(void *data, struct wl_registry *registry, uint32_t name, cons
                    uint32_t version) {
   if (strcmp(interface, zwlr_output_manager_v1_interface.name) == 0) {
     printf("interface: '%s', version: %d, name: %d\n", interface, version, name);
+    struct zwlr_output_manager_v1 *manager = (zwlr_output_manager_v1 *)wl_registry_bind(
+        registry, name, &zwlr_output_manager_v1_interface, version);
+    state->manager = manager;
+    zwlr_output_manager_v1_add_listener(manager, &manager_listener, state);
   }
 }
 
@@ -105,13 +109,8 @@ void wlr_output_init() {
   // Bind a listener to the registry
   wl_registry_add_listener(registry, &registry_listener, NULL);
 
-  // TODO: Binding the manager should be done conditional to whether compositor supports this
-  // protocol Consider moving this to listener (code structure confusing?) or do a roundtrip first
-  // TODO: Don't hardcode name and version
-  struct zwlr_output_manager_v1 *manager = (zwlr_output_manager_v1 *)wl_registry_bind(
-      registry, 20, &zwlr_output_manager_v1_interface, 4);
-  state->manager = manager;
-  zwlr_output_manager_v1_add_listener(manager, &manager_listener, state);
+  // Registry listener will bind the zwlr manager if it is supported
+  // TODO: Quit app if compositor does not support the protocol
 
   // Block until all pending requests/events are sent/received and all listeners executed:
   // - Handle global events (globals available on this compositor)
@@ -213,26 +212,27 @@ void apply_configurations(vector<DisplayConfig> configs) {
 
   for (DisplayConfig config : configs) {
     for (Head *head : state->heads) {
-      if (strcmp(config.name, head->info.name) == 0) {
-        if (!config.enabled) {
-          zwlr_output_configuration_v1_disable_head(zwlr_config, head->wlr_head);
-          break;
-        }
-
-        zwlr_output_configuration_head_v1 *config_head =
-            zwlr_output_configuration_v1_enable_head(zwlr_config, head->wlr_head);
-
-        zwlr_output_configuration_head_v1_set_position(config_head, config.pos_x, config.pos_y);
-        zwlr_output_configuration_head_v1_set_custom_mode(config_head, config.size_x, config.size_y,
-                                                          (int)config.rate);
-        zwlr_output_configuration_head_v1_set_scale(config_head, float_to_fixed(config.scale));
-        zwlr_output_configuration_head_v1_set_transform(config_head, config.transform);
-
-        printf("Setting %s: Position (%d,%d) Size %dx%d Scale %f Rate %d Transform %d\n",
-               config.name, config.pos_x, config.pos_y, config.size_x, config.size_y, config.scale,
-               config.rate, config.transform);
+      if (strcmp(config.name, head->info.name) != 0) {
+        continue;
+      }
+      if (!config.enabled) {
+        zwlr_output_configuration_v1_disable_head(zwlr_config, head->wlr_head);
         break;
       }
+
+      zwlr_output_configuration_head_v1 *config_head =
+          zwlr_output_configuration_v1_enable_head(zwlr_config, head->wlr_head);
+
+      zwlr_output_configuration_head_v1_set_position(config_head, config.pos_x, config.pos_y);
+      zwlr_output_configuration_head_v1_set_custom_mode(config_head, config.size_x, config.size_y,
+                                                        (int)config.rate);
+      zwlr_output_configuration_head_v1_set_scale(config_head, float_to_fixed(config.scale));
+      zwlr_output_configuration_head_v1_set_transform(config_head, config.transform);
+
+      printf("Setting %s: Position (%d,%d) Size %dx%d Scale %f Rate %d Transform %d\n", config.name,
+             config.pos_x, config.pos_y, config.size_x, config.size_y, config.scale, config.rate,
+             config.transform);
+      break;
     }
   }
   zwlr_output_configuration_v1_apply(zwlr_config);
