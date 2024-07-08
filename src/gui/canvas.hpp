@@ -12,23 +12,8 @@ struct Box {
   }
 };
 
-/* Container to store dynamic state of canvas, will be passed around callbacks */
-struct CanvasState {
-  std::vector<struct Box> boxes;
+void setup_canvas(GtkDrawingArea *drawing_area, std::vector<Box> boxes);
 
-  // Drag
-  float drag_start_x;
-  float drag_start_y;
-  float drag_delta_x;
-  float drag_delta_y;
+void update_canvas(std::vector<Box> boxes);
 
-  int selected_box = -1; // -1 if no box held
-  float box_start_x;
-  float box_start_y;
-};
-
-void setup_canvas(GtkDrawingArea *drawing_area, CanvasState *state);
-
-void attach_canvas_updated_callback(void (*func)(CanvasState));
-
-void redraw_canvas();
+void attach_canvas_updated_callback(void (*func)(int, std::vector<Box>));

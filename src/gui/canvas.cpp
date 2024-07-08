@@ -4,6 +4,21 @@
 #include <gtk/gtk.h>
 #include <vector>
 
+/* Internal container to store dynamic state of canvas, will be passed around callbacks */
+struct CanvasState {
+  std::vector<struct Box> boxes;
+
+  // Drag
+  float drag_start_x;
+  float drag_start_y;
+  float drag_delta_x;
+  float drag_delta_y;
+
+  int selected_box = -1; // -1 if no box held
+  float box_start_x;
+  float box_start_y;
+};
+
 /* A number larger than canvas size */
 #define INF 1500
 /* Minimum distance between sides of boxes for snapping to occur */
@@ -11,8 +26,9 @@
 /* Scaling factor between compositor pixels and canvas pixels */
 const float CANVAS_FAC = 0.15;
 
-GtkWidget *canvas;
-void (*on_canvas_updated)(CanvasState);
+static GtkWidget *canvas;
+static CanvasState *state;
+static void (*on_canvas_updated)(int, std::vector<Box>);
 
 // ============================================================
 // Helpers
@@ -168,7 +184,7 @@ void on_drag_start(GtkGestureDrag *drag_, gdouble start_x, gdouble start_y, gpoi
       break;
     }
   }
-  on_canvas_updated(*state);
+  on_canvas_updated(state->selected_box, state->boxes);
 
   queue_draw_area(canvas);
 }
@@ -199,7 +215,7 @@ void on_drag_update(GtkGestureDrag *drag_, gdouble delta_x, gdouble delta_y, gpo
   box->x = MIN(MAX(x, 0), canvas_width / CANVAS_FAC - box->width);
   box->y = MIN(MAX(y, 0), canvas_height / CANVAS_FAC - box->height);
 
-  on_canvas_updated(*state);
+  on_canvas_updated(state->selected_box, state->boxes);
 
   queue_draw_area(canvas);
 }
@@ -216,8 +232,9 @@ void on_drag_end(GtkGestureDrag *drag_, gdouble delta_x, gdouble delta_y, gpoint
 // Entry point
 // ============================================================
 
-void setup_canvas(GtkDrawingArea *drawing_area, CanvasState *state) {
+void setup_canvas(GtkDrawingArea *drawing_area, std::vector<Box> boxes) {
   canvas = GTK_WIDGET(drawing_area);
+  state = new CanvasState{.boxes = boxes};
 
   g_signal_connect(G_OBJECT(canvas), "draw", G_CALLBACK(draw_callback), state);
 
@@ -227,10 +244,11 @@ void setup_canvas(GtkDrawingArea *drawing_area, CanvasState *state) {
   g_signal_connect(canvas_drag1_controller, "drag-end", G_CALLBACK(on_drag_end), state);
 }
 
-void attach_canvas_updated_callback(void (*func)(CanvasState)) {
-  on_canvas_updated = func;
+void update_canvas(std::vector<Box> boxes) {
+  state->boxes = boxes;
+  queue_draw_area(canvas);
 }
 
-void redraw_canvas() {
-  queue_draw_area(canvas);
+void attach_canvas_updated_callback(void (*func)(int, std::vector<Box>)) {
+  on_canvas_updated = func;
 }

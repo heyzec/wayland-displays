@@ -27,7 +27,6 @@ template <class T> using vector = std::vector<T>;
 vector<DisplayInfo> displays = vector<DisplayInfo>{DisplayInfo{}};
 
 int selected_display = 0;
-CanvasState *canvas_state = new struct CanvasState;
 
 // GTK widgets that we need to set and get values from
 GtkWidget *button_box;
@@ -76,14 +75,11 @@ vector<Box> create_boxes_from_displays(vector<DisplayInfo> displays) {
   return boxes;
 }
 
-void update_displays_from_boxes(vector<DisplayInfo> *displays, const CanvasState canvas_state) {
-  vector<Box> boxes = canvas_state.boxes;
+void update_displays_from_boxes(vector<DisplayInfo> *displays, const vector<Box> boxes) {
   if (displays->size() != boxes.size()) {
     printf("Vector sizes do not match!\n");
     return;
   }
-
-  selected_display = canvas_state.selected_box;
 
   // Note that only position attributes are updated back
   for (int i = 0; i < boxes.size(); i++) {
@@ -96,8 +92,8 @@ void update_displays_from_boxes(vector<DisplayInfo> *displays, const CanvasState
 
 void update_canvas() {
   // TODO: Improve code org: it is not clear that canvas_state and redraw_canvas is related
-  canvas_state->boxes = create_boxes_from_displays(displays);
-  redraw_canvas();
+  vector<Box> boxes = create_boxes_from_displays(displays);
+  update_canvas(boxes);
 }
 
 // ============================================================
@@ -309,7 +305,7 @@ GtkWidget *get_window() {
 
   // Get and setup drawing canvas (don't draw boxes yet)
   GtkDrawingArea *drawing_area = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "drawing_area"));
-  setup_canvas(drawing_area, canvas_state);
+  setup_canvas(drawing_area, std::vector<Box>());
 
   // Get description labels
   description_label = GTK_LABEL(gtk_builder_get_object(builder, "description_label"));
@@ -394,11 +390,12 @@ void run_gui() {
   replace_toggle_group(displays);
 
   // Update content values in window
-  update_canvas();
   update_gui_elements();
+  update_canvas();
 
-  attach_canvas_updated_callback([](const CanvasState canvas_state) {
-    update_displays_from_boxes(&displays, canvas_state);
+  attach_canvas_updated_callback([](int selected_box, const vector<Box> boxes) {
+    update_displays_from_boxes(&displays, boxes);
+    selected_display = selected_box;
     update_gui_elements();
   });
 
