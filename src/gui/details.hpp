@@ -5,8 +5,8 @@
 extern std::vector<DisplayInfo> displays;
 extern int selected_display;
 
-void update_gui_elements();
+void refresh_details();
 
 void setup_details(GtkBuilder *builder);
 
-void replace_toggle_group(std::vector<DisplayInfo> displays);
+void attach_details_updated_callback(void (*func)(int, DisplayInfo));
