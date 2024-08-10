@@ -131,7 +131,7 @@ void update_displays_from_server() {
 /* On SIGUSR1, refresh GUI */
 void usr1_signal_handler(int signal) {
   update_displays_from_server();
-  replace_toggle_group(displays);
+  // replace_toggle_group(displays);
 
   update_canvas();
   update_gui_elements();
@@ -146,7 +146,7 @@ void run_gui() {
 
   // Setup contents in window
   GtkWidget *window = get_window();
-  replace_toggle_group(displays);
+  // replace_toggle_group(displays);
 
   // Update content values in window
   update_gui_elements();

@@ -9,4 +9,4 @@ void update_gui_elements();
 
 void setup_details(GtkBuilder *builder);
 
-void replace_toggle_group(std::vector<DisplayInfo> displays);
+void attach_details_updated_callback(void (*func)(int, DisplayInfo));

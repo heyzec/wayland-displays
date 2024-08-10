@@ -1,5 +1,4 @@
 #include "gui/details.hpp"
-#include "gui/gui.hpp"
 
 #include "common/ipc.hpp"
 #include "common/ipc_request.hpp"
@@ -31,6 +30,9 @@ static GtkSpinButton *rate_spin;
 static GtkComboBoxText *modes_combobox;
 static GtkLabel *transform_button_label;
 static GtkPopover *transform_menu;
+
+// Initialise it with no-op
+static void (*on_details_updated)(int, DisplayInfo) = [](int, DisplayInfo) {};
 
 // ============================================================
 // External variables
@@ -73,104 +75,61 @@ void update_transform_label(int enum_value) {
   gtk_label_set_text(transform_button_label, transform_readable[enum_value]);
 };
 
-void update_gui_elements() {
-  if (selected_display == -1) {
-    return;
-  }
-  auto display = displays.at(selected_display);
-
-  // Update toggle group
-  toggle_group_set_active(toggle_group, selected_display);
-
-  // Update label
-  gtk_label_set_text(description_label, display.description);
-
-  // Update enabled switch
-  gtk_switch_set_active(enabled_switch, display.enabled);
-
-  // Update spin buttons
-  gtk_spin_button_set_value(pos_x_spin, display.pos_x);
-  gtk_spin_button_set_value(pos_y_spin, display.pos_y);
-  gtk_spin_button_set_value(size_x_spin, display.size_x);
-  gtk_spin_button_set_value(size_y_spin, display.size_y);
-  gtk_spin_button_set_value(dpi_spin, display.scale);
-  gtk_spin_button_set_value(rate_spin, (float)display.rate / 1000);
-
-  update_available_modes(display);
-
-  // Update transform button label
-  update_transform_label(display.transform);
-}
-
 void on_active_toggled(ToggleGroup *toggle_group, void *data) {
   selected_display = toggle_group_get_active(toggle_group);
-  update_gui_elements();
+  on_details_updated(selected_display, DisplayInfo());
 }
 gboolean on_enabled_changed(GtkSwitch *enabled_switch) {
+  DisplayInfo display = displays.at(selected_display);
+  display.enabled = gtk_switch_get_active(enabled_switch);
+  on_details_updated(-1, display);
   // Return true to prevent the default handler from running
-  if (selected_display != -1) {
-    displays.at(selected_display).enabled = gtk_switch_get_active(enabled_switch);
-  }
   return false;
 }
 void on_position_x_changed(GtkSpinButton *position_x_entry) {
-  if (selected_display != -1) {
-    displays.at(selected_display).pos_x = gtk_spin_button_get_value(position_x_entry);
-    update_canvas();
-  }
+  DisplayInfo display = displays.at(selected_display);
+  display.pos_x = gtk_spin_button_get_value(position_x_entry);
+  on_details_updated(-1, display);
 }
 void on_position_y_changed(GtkSpinButton *position_y_entry) {
-  if (selected_display != -1) {
-    displays.at(selected_display).pos_y = gtk_spin_button_get_value(position_y_entry);
-    update_canvas();
-  }
+  DisplayInfo display = displays.at(selected_display);
+  display.pos_y = gtk_spin_button_get_value(position_y_entry);
+  on_details_updated(-1, display);
 }
 void on_size_x_changed(GtkSpinButton *size_x_entry) {
-  if (selected_display != -1) {
-    displays.at(selected_display).size_x = gtk_spin_button_get_value(size_x_entry);
-    update_canvas();
-  }
+  DisplayInfo display = displays.at(selected_display);
+  display.size_x = gtk_spin_button_get_value(size_x_entry);
+  on_details_updated(-1, display);
 }
 void on_size_y_changed(GtkSpinButton *size_y_entry) {
-  if (selected_display != -1) {
-    displays.at(selected_display).size_y = gtk_spin_button_get_value(size_y_entry);
-    update_canvas();
-  }
+  DisplayInfo display = displays.at(selected_display);
+  display.size_y = gtk_spin_button_get_value(size_y_entry);
+  on_details_updated(-1, display);
 }
 void on_dpi_changed(GtkSpinButton *dpi_button) {
-  if (selected_display != -1) {
-    displays.at(selected_display).scale = gtk_spin_button_get_value(dpi_button);
-    update_canvas();
-  }
+  DisplayInfo display = displays.at(selected_display);
+  display.scale = gtk_spin_button_get_value(dpi_button);
+  on_details_updated(-1, display);
 }
 void on_rate_changed(GtkSpinButton *rate_button) {
-  if (selected_display != -1) {
-    displays.at(selected_display).rate = gtk_spin_button_get_value(rate_button) * 1000;
-    update_canvas();
-  }
+  DisplayInfo display = displays.at(selected_display);
+  display.rate = gtk_spin_button_get_value(rate_button) * 1000;
+  on_details_updated(-1, display);
 }
 
 void on_mode_changed(GtkComboBoxText *combo_box, void *data) {
-  if (selected_display == -1) {
-    return;
-  }
   const gchar *id = gtk_combo_box_get_active_id(GTK_COMBO_BOX(combo_box));
   if (id == nullptr) {
     return;
   }
-
   int index = std::stoi(id);
-  DisplayInfo *display = &displays.at(selected_display);
 
-  display->size_x = display->modes.at(index).size_x;
-  display->size_y = display->modes.at(index).size_y;
-  display->rate = display->modes.at(index).rate;
-  gtk_spin_button_set_value(size_x_spin, display->size_x);
-  gtk_spin_button_set_value(size_y_spin, display->size_y);
-  gtk_spin_button_set_value(dpi_spin, display->scale);
-  gtk_spin_button_set_value(rate_spin, (float)display->rate / 1000);
+  DisplayInfo display = displays.at(selected_display);
+  display.size_x = display.modes.at(index).size_x;
+  display.size_y = display.modes.at(index).size_y;
+  display.rate = display.modes.at(index).rate;
 
-  update_canvas();
+  on_details_updated(-1, display);
 }
 
 void on_transform_menu_clicked(GtkWidget *transform_button) {
@@ -185,10 +144,9 @@ void on_transform_menu_clicked(GtkWidget *transform_button) {
     return;
   }
 
-  displays.at(selected_display).transform = enum_value;
-  gtk_popover_popdown(transform_menu);
-  update_transform_label(enum_value);
-  update_canvas();
+  DisplayInfo display = displays.at(selected_display);
+  display.transform = enum_value;
+  on_details_updated(-1, display);
 }
 
 void on_apply_clicked(GtkButton *apply_button) {
@@ -225,6 +183,36 @@ void replace_toggle_group(vector<DisplayInfo> displays) {
     gtk_container_add(GTK_CONTAINER(button_box), GTK_WIDGET(new_toggle_group));
   }
   toggle_group = new_toggle_group;
+}
+
+void update_gui_elements() {
+  if (selected_display == -1) {
+    return;
+  }
+  auto display = displays.at(selected_display);
+
+  // Update toggle group
+  // toggle_group_set_active(toggle_group, selected_display);
+  replace_toggle_group(displays);
+
+  // Update label
+  gtk_label_set_text(description_label, display.description);
+
+  // Update enabled switch
+  gtk_switch_set_active(enabled_switch, display.enabled);
+
+  // Update spin buttons
+  gtk_spin_button_set_value(pos_x_spin, display.pos_x);
+  gtk_spin_button_set_value(pos_y_spin, display.pos_y);
+  gtk_spin_button_set_value(size_x_spin, display.size_x);
+  gtk_spin_button_set_value(size_y_spin, display.size_y);
+  gtk_spin_button_set_value(dpi_spin, display.scale);
+  gtk_spin_button_set_value(rate_spin, (float)display.rate / 1000);
+
+  update_available_modes(display);
+
+  // Update transform button label
+  update_transform_label(display.transform);
 }
 
 void setup_details(GtkBuilder *builder) {
@@ -268,4 +256,8 @@ void setup_details(GtkBuilder *builder) {
 
   // Get container for toggle group (don't create it yet)
   button_box = GTK_WIDGET(gtk_builder_get_object(builder, "button_box"));
+}
+
+void attach_details_updated_callback(void (*func)(int, DisplayInfo)) {
+  on_details_updated = func;
 }
