@@ -286,27 +286,7 @@ void replace_toggle_group(vector<DisplayInfo> displays) {
   toggle_group = new_toggle_group;
 }
 
-GtkWidget *get_window() {
-  // Create a GtkBuilder instance
-  GtkBuilder *builder = gtk_builder_new();
-
-  // Initialize the resource
-  g_resources_register(resources_get_resource());
-
-  // Load the UI description from the resource
-  string resource_path = string(GRESOURCE_PREFIX) + "layout.ui";
-  if (!gtk_builder_add_from_resource(builder, resource_path.c_str(), NULL)) {
-    printf("Error loading resource: %s\n", resource_path.c_str());
-    exit(1);
-  }
-
-  // Get the main window object
-  GtkWidget *window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
-
-  // Get and setup drawing canvas (don't draw boxes yet)
-  GtkDrawingArea *drawing_area = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "drawing_area"));
-  setup_canvas(drawing_area, std::vector<Box>());
-
+void setup_details(GtkBuilder *builder) {
   // Get description labels
   description_label = GTK_LABEL(gtk_builder_get_object(builder, "description_label"));
 
@@ -347,6 +327,30 @@ GtkWidget *get_window() {
 
   // Get container for toggle group (don't create it yet)
   button_box = GTK_WIDGET(gtk_builder_get_object(builder, "button_box"));
+}
+
+GtkWidget *get_window() {
+  // Create a GtkBuilder instance
+  GtkBuilder *builder = gtk_builder_new();
+
+  // Initialize the resource
+  g_resources_register(resources_get_resource());
+
+  // Load the UI description from the resource
+  string resource_path = string(GRESOURCE_PREFIX) + "layout.ui";
+  if (!gtk_builder_add_from_resource(builder, resource_path.c_str(), NULL)) {
+    printf("Error loading resource: %s\n", resource_path.c_str());
+    exit(1);
+  }
+
+  // Get the main window object
+  GtkWidget *window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
+
+  // Get and setup drawing canvas (don't draw boxes yet)
+  GtkDrawingArea *drawing_area = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "drawing_area"));
+  setup_canvas(drawing_area, std::vector<Box>());
+
+  setup_details(builder);
 
   // Add header bar
   GtkWidget *header_bar = GTK_WIDGET(gtk_builder_get_object(builder, "header"));
