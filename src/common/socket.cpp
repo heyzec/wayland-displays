@@ -1,10 +1,9 @@
-#pragma once
-
-#include <yaml-cpp/yaml.h>
+#include "common/socket.hpp"
 
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <yaml-cpp/yaml.h>
 
 static char *socket_read_raw(int fd_sock) {
   recv(fd_sock, NULL, 0, MSG_PEEK);

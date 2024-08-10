@@ -4,8 +4,10 @@ set(SOURCES
     outputs/head.cpp
     outputs/config.cpp
     outputs/mode.cpp
+    common/ipc.cpp
     common/paths.cpp
     common/shapes.cpp
+    common/socket.cpp
     main.cpp
 )
 

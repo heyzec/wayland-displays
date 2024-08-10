@@ -3,7 +3,7 @@
 #include "server/ipc.cpp"
 
 #include "common/paths.hpp"
-#include "common/socket.cpp"
+#include "common/socket.hpp"
 #include "outputs/outputs.hpp"
 
 #include <yaml-cpp/yaml.h>
