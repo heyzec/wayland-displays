@@ -37,6 +37,7 @@ static void head(void *data, struct zwlr_output_manager_v1 *manager,
 }
 
 static void done(void *data, struct zwlr_output_manager_v1 *manager, uint32_t serial) {
+  printf("Done\n");
   auto state = (WlrState *)data;
 
   state->serial = serial;
