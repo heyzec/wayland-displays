@@ -47,9 +47,24 @@ int selected_display = 0;
 // Set and get values (with callbacks attached to GUI elements)
 // ============================================================
 
+int compute_hash(vector<string> vec) {
+  const int p = 31;
+  const int m = 1e9 + 9;
+  int hash_value = 0;
+  int p_pow = 1;
+  for (string s : vec) {
+    for (char c : s) {
+      hash_value = (hash_value + (c - 'a' + 1) * p_pow) % m;
+      p_pow = (p_pow * p) % m;
+    }
+  }
+  return hash_value;
+}
+
+int mode_texts_hash = 0;
+
 void update_available_modes(DisplayInfo display) {
-  // TODO: Do not call this function on drag! The app is lagging
-  gtk_combo_box_text_remove_all(modes_combobox);
+  vector<string> mode_texts;
   for (int i = 0; i < display.modes.size(); i++) {
     ModeInfo mode = display.modes.at(i);
     string id = std::to_string(i);
@@ -59,12 +74,24 @@ void update_available_modes(DisplayInfo display) {
     buf << (float)mode.rate / 1000 << "Hz";
     string text = buf.str();
 
-    gtk_combo_box_text_append(modes_combobox, id.c_str(), text.c_str());
+    mode_texts.push_back(text);
   }
 
-  // Cap max height to 10
-  int n_columns = display.modes.size() / 10 + 1;
-  gtk_combo_box_set_wrap_width(GTK_COMBO_BOX(modes_combobox), n_columns);
+  // if this function is called continuously, e.g. called on drag
+  // then gtk_combo_box_XXX functions will slow down the app if called in a loop
+  if (compute_hash(mode_texts) != mode_texts_hash) {
+    gtk_combo_box_text_remove_all(modes_combobox);
+    for (int i = 0; i < mode_texts.size(); i++) {
+      string id = std::to_string(i);
+      string text = mode_texts.at(i);
+      gtk_combo_box_text_append(modes_combobox, id.c_str(), text.c_str());
+    }
+    // Cap max height to 10
+    int n_columns = display.modes.size() / 10 + 1;
+    gtk_combo_box_set_wrap_width(GTK_COMBO_BOX(modes_combobox), n_columns);
+
+    mode_texts_hash = compute_hash(mode_texts);
+  }
 }
 
 void update_transform_label(int enum_value) {
