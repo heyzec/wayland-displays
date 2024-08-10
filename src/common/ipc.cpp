@@ -1,9 +1,10 @@
-#pragma once
+#include "common/ipc.hpp"
 
 #include "common/ipc_request.hpp"
 #include "common/paths.hpp"
-#include "common/socket.cpp"
+#include "common/socket.hpp"
 
+#include <sys/socket.h>
 #include <sys/un.h>
 #include <yaml-cpp/yaml.h>
 
