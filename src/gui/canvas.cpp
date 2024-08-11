@@ -244,7 +244,7 @@ void setup_canvas(GtkDrawingArea *drawing_area, std::vector<Box> boxes) {
   g_signal_connect(canvas_drag1_controller, "drag-end", G_CALLBACK(on_drag_end), state);
 }
 
-void update_canvas(std::vector<Box> boxes) {
+void refresh_canvas(std::vector<Box> boxes) {
   state->boxes = boxes;
   queue_draw_area(canvas);
 }

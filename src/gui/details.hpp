@@ -5,7 +5,7 @@
 extern std::vector<DisplayInfo> displays;
 extern int selected_display;
 
-void update_gui_elements();
+void refresh_details();
 
 void setup_details(GtkBuilder *builder);
 

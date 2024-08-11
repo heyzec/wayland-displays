@@ -185,7 +185,7 @@ void replace_toggle_group(vector<DisplayInfo> displays) {
   toggle_group = new_toggle_group;
 }
 
-void update_gui_elements() {
+void refresh_details() {
   if (selected_display == -1) {
     return;
   }

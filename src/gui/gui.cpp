@@ -74,10 +74,10 @@ void update_displays_from_boxes(vector<DisplayInfo> *displays, const vector<Box>
   }
 }
 
-void update_canvas() {
+void refresh_canvas() {
   // TODO: Improve code org: it is not clear that canvas_state and redraw_canvas is related
   vector<Box> boxes = create_boxes_from_displays(displays);
-  update_canvas(boxes);
+  refresh_canvas(boxes);
 }
 
 // ============================================================
@@ -119,7 +119,6 @@ GtkWidget *get_window() {
 // ============================================================
 // Entry Point
 // ============================================================
-//
 
 void update_displays_from_server() {
   // Get displays state via IPC
@@ -128,16 +127,18 @@ void update_displays_from_server() {
   displays = response["STATE"]["HEADS"].as<vector<DisplayInfo>>();
 }
 
+void refresh_gui() {
+  refresh_canvas();
+  refresh_details();
+}
+
 /* On SIGUSR1, refresh GUI */
 void usr1_signal_handler(int signal) {
   update_displays_from_server();
-  // replace_toggle_group(displays);
-
-  update_canvas();
-  update_gui_elements();
+  refresh_gui();
 }
 
-void run_gui() {
+void setup_gui() {
   signal(SIGUSR1, usr1_signal_handler);
 
   update_displays_from_server();
@@ -146,16 +147,14 @@ void run_gui() {
 
   // Setup contents in window
   GtkWidget *window = get_window();
-  // replace_toggle_group(displays);
 
   // Update content values in window
-  update_gui_elements();
-  update_canvas();
+  refresh_gui();
 
   attach_canvas_updated_callback([](int selected_box, const vector<Box> boxes) {
     update_displays_from_boxes(&displays, boxes);
     selected_display = selected_box;
-    update_gui_elements();
+    refresh_details();
   });
 
   attach_details_updated_callback([](int new_selected_display, DisplayInfo display) {
@@ -164,12 +163,14 @@ void run_gui() {
       return;
     }
     displays.at(selected_display) = display;
-    update_canvas();
-    update_gui_elements();
+    refresh_gui();
   });
 
   gtk_widget_show_all(window); // Mark all widgets to be displayed
-  gtk_main();
+}
 
+void run_gui() {
+  setup_gui();
+  gtk_main();
   // g_object_unref(builder);
 }
