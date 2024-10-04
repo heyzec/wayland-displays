@@ -1,5 +1,7 @@
 # wayland-displays
 
+![](./showcase.png)
+
 ## Impetus
 While Wayland offers several tooling solutions for managing display outputs, it often seems that each solution lacks certain features found in others.
 
