@@ -13,10 +13,10 @@ int main(int argc, char *argv[]) {
 
   Namespace args = parser.parse_args(argc, argv);
 
-  if (args.get<bool>("server")) {
+  if (args.get<bool>("server").value_or(false)) {
     run_server();
     exit(1);
-  } else if (args.get<bool>("gui")) {
+  } else if (args.get<bool>("gui").value_or(false)) {
     // TODO: Fork a temporary server if no server exists
     // int pid = fork();
     // if (pid == 0) {

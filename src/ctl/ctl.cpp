@@ -5,11 +5,11 @@
 #include <yaml-cpp/node/node.h>
 
 void run_ctl(Namespace args) {
-  // TODO: This will crash if --switch not given
-  // Use std::optional for argparse
-  std::string profile_name = args.get<std::string>("switch");
-  if (true) {
-    IpcSwitchRequest request = IpcSwitchRequest(profile_name);
+  std::optional<std::string> profile_name = args.get<std::string>("switch");
+  if (profile_name.has_value()) {
+    IpcSwitchRequest request = IpcSwitchRequest(profile_name.value());
     YAML::Node response = send_ipc_request(request);
+  } else {
+    printf("Please provide more arguments. Run with --help to see what options are available\n");
   }
 }

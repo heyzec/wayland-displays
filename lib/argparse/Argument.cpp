@@ -2,6 +2,7 @@
 
 #include <any>
 #include <cassert>
+#include <optional>
 #include <string>
 
 enum ArgumentAction {
@@ -15,9 +16,14 @@ public:
   std::string opt_short;
   std::string opt_long;
 
-  ArgumentAction _action = STORE;
-  std::any _store;
-  std::string _help;
+  // Refer to https://docs.python.org/3/library/argparse.html#the-add-argument-method
+
+  // Specify how the command-line arguments should be handled
+  std::optional<ArgumentAction> _action = STORE;
+  // Specify what value should be used if the command-line argument is not present
+  std::optional<std::any> _fallback;
+  // Brief description of the argument
+  std::optional<std::string> _help;
 
   bool is_required = false;
 
@@ -31,13 +37,14 @@ public:
   Argument *action(ArgumentAction action) {
     this->_action = action;
     if (action == STORE_TRUE) {
-      _store = true;
+      _fallback = true;
     }
     return this;
   }
 
-  Argument *store(std::any value) {
-    this->_store = value;
+  // Equivalent to python.argparse's default parameter
+  Argument *fallback(std::any fallback) {
+    this->_fallback = fallback;
     return this;
   }
 

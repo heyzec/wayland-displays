@@ -9,7 +9,7 @@ int sandbox(int argc, char *argv[]) {
 
   Namespace args = parser.parse_args(argc, argv);
   // std::cout << args.get<std::string>("filename") << "\n"
-  std::cout << args.get<std::string>("count") << "\n";
-  std::cout << args.get<bool>("verbose") << "\n";
+  std::cout << args.get<std::string>("count").value_or("None") << "\n";
+  std::cout << args.get<bool>("verbose").value_or("None") << "\n";
   return 0;
 }

@@ -2,6 +2,7 @@
 
 #include <any>
 #include <map>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -14,11 +15,19 @@ public:
     storage[name] = value;
   }
 
-  template <typename T> T get(const std::string &name) const {
+  template <typename T> std::optional<T> get(const std::string &name) const {
     auto it = storage.find(name);
-    if (it != storage.end()) {
-      return std::any_cast<T>(it->second);
+    if (it == storage.end()) {
+      throw std::runtime_error("Bug: No such key: " + name);
     }
-    throw std::runtime_error("No such key: " + name);
+    std::any possibleValue = it->second;
+    if (!possibleValue.has_value()) {
+      return std::nullopt;
+    }
+    if (possibleValue.type() != typeid(T)) {
+      throw std::runtime_error(std::string("Bug: type to args.get is invalid: ") +
+                               possibleValue.type().name());
+    }
+    return std::any_cast<T>(possibleValue);
   }
 };

@@ -55,8 +55,10 @@ private:
     for (Argument *&arg : arguments) {
       std::cout << "  ";
       std::cout << "-" << arg->opt_short << ", ";
-      std::cout << "--" << arg->opt_long << "\t";
-      std::cout << arg->_help;
+      std::cout << "--" << arg->opt_long;
+      if (arg->_help) {
+        std::cout << "\t" << arg->_help.value();
+      }
       std::cout << "\n";
     }
     std::cout << "\n";
@@ -74,10 +76,14 @@ private:
       prog = std::string(argv[0]);
     }
     for (Argument *&arg : arguments) {
+      std::any value;
       if (arg->_action == STORE_TRUE) {
-        ns.set<std::any>(arg->opt_short, false);
-        ns.set<std::any>(arg->opt_long, false);
+        value = false;
+      } else if (arg->_action == STORE_CONST && arg->_fallback) {
+        value = arg->_fallback;
       }
+      ns.set<std::any>(arg->opt_short, value);
+      ns.set<std::any>(arg->opt_long, value);
     }
 
     std::string short_options;
@@ -133,9 +139,9 @@ private:
         // optarg is an extern containing the value of the option
         value = std::string(optarg);
       } else if (arg._action == STORE_CONST) {
-        value = arg._store;
+        // TODO: Implement by adding a Argument.const()
       } else if (arg._action == STORE_TRUE) {
-        value = std::any_cast<bool>(arg._store);
+        value = true;
       }
 
       ns.set<std::any>(arg.opt_short, value);
@@ -192,7 +198,7 @@ public:
 
     Namespace ns = parse(argc, argv, options);
 
-    if (ns.get<bool>("help")) {
+    if (ns.get<bool>("help").value_or(false)) {
       // Display help and exit
       show_help();
       exit(0);
