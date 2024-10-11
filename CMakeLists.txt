@@ -31,7 +31,7 @@ include(CTest)
 
 # Add testing code only if this variable is ON
 if(BUILD_TESTING)
-  add_subdirectory(tests)
+  add_subdirectory(tests/unit)
 endif()
 
 ########################################

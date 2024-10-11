@@ -29,7 +29,7 @@
                 "^cmake.*"
                 "^protocols.*"
                 "^resources.*"
-                "^tests.*"
+                "^tests/unit.*"
               ];
 
               # Needed at compile time
@@ -81,7 +81,13 @@
               ] ++ config.packages.default.nativeBuildInputs;
           };
 
-          packages.default = wayland-displays;
+          packages = {
+            default = wayland-displays;
+
+            # Run with nix -L build .#test-vm
+            test-vm = pkgs.testers.runNixOSTest (import ./tests/vm/test.nix wayland-displays);
+          };
+
           apps.debug =
             let
               debug = pkgs.writeShellApplication {
