@@ -4,6 +4,7 @@
 #include "common/shapes.hpp"
 #include "outputs/outputs.hpp"
 
+#include <optional>
 #include <variant>
 #include <yaml-cpp/yaml.h>
 
@@ -19,7 +20,7 @@ YAML::Node handle_set(IpcSetRequest request) {
   return YAML::Node{};
 }
 
-YAML::Node handle_switch(IpcSwitchRequest request, YAML::Node config) {
+YAML::Node handle_switch(IpcSwitchRequest request, std::optional<Config> config) {
   string profile_name = request.profile_name;
   auto handler = DefaultHandler();
   std::vector<DisplayInfo> heads = get_head_infos();
@@ -31,7 +32,7 @@ YAML::Node handle_switch(IpcSwitchRequest request, YAML::Node config) {
   return YAML::Node{};
 }
 
-YAML::Node handle_ipc_request(IpcRequest request, YAML::Node config) {
+YAML::Node handle_ipc_request(IpcRequest request, std::optional<Config> config) {
   // TODO: SLAP this function by returning IpcResponse
 
   printf("Someone's knocking...\n");

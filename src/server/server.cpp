@@ -6,6 +6,7 @@
 #include "common/socket.hpp"
 #include "outputs/outputs.hpp"
 
+#include <optional>
 #include <yaml-cpp/yaml.h>
 
 #include <csignal>
@@ -27,7 +28,7 @@
 
 using string = std::string;
 
-YAML::Node config;
+std::optional<Config> config;
 const char *config_path;
 
 /* File descriptor of server socket */
@@ -53,14 +54,20 @@ pollfd *pfd_config;
 // Helper functions (avoid using global variables)
 // ============================================================
 
-static YAML::Node get_config(const char *config_path) {
+static std::optional<Config> get_config(const char *config_path) {
   bool ok = std::filesystem::exists(config_path);
   if (!ok) {
-    return YAML::Node{};
+    return std::nullopt;
   }
 
-  YAML::Node config = YAML::LoadFile(config_path);
-  return config;
+  YAML::Node node = YAML::LoadFile(config_path);
+  try {
+    Config config = node.as<Config>();
+    return config;
+  } catch (YAML::BadConversion &e) {
+    fprintf(stderr, "Error parsing config file: %s\n", e.what());
+    return std::nullopt;
+  }
 }
 
 int ipc_socket_create(const char *socket_path) {
@@ -146,9 +153,13 @@ void server_init() {
 
   // Config file
   std::string config_path_s = get_config_path();
-  config_path = strdup(config_path_s.c_str());
-  fd_config = inotify_init();
-  reload_rewatch_config();
+  if (std::filesystem::exists(config_path_s)) {
+    config_path = strdup(config_path_s.c_str());
+    fd_config = inotify_init();
+    reload_rewatch_config();
+  } else {
+    printf("WARN: Config file not found at: %s\n", config_path_s.c_str());
+  }
 
   // Wayland
   wlr_output_init(); // This needs to be after config file setup, since it will do a roundtrip,
