@@ -1,26 +1,27 @@
 PROFILES:
   home:
     DISPLAYS:
-      - '!^Beihai Century.+(DP-\d)'
-      - '!^Sharp Corporation.+(eDP-\d)'
+      - NAME: 'Sharp Corporation 0x14F9 (eDP-1)' # Exact match on display name or ID
+      - NAME: '!^Beihai Century.+(DP-\d)'        # Alternatively, use a regex
 
-    ORDER:
-      - '!^Sharp Corporation.+(eDP-\d)'
-      - '!^Beihai Century.+(DP-\d)'
-
-    ARRANGE: ROW
-    ALIGN: BOTTOM
+    # Let the server arrange the displays
+    ARRANGE: ROW  # ROW or COLUMN
+    ALIGN: BOTTOM # TOP, MIDDLE, BOTTOM, LEFT, or RIGHT
 
   standalone:
     DISPLAYS:
-      - '!^eDP-\d'
+    - NAME: '!^eDP-\d'
+      # You can configure each display individually
+      ENABLED: false
+      SCALE: 1.5
+      TRANSFORM: 0 # 0 to 7 (inclusive)
 
-    ORDER:
-      - '!^eDP-\d'
+      #  These attributes may be bugged:
+      #  POSITION_X: 100
+      #  POSITION_Y: 1200
+      #  WIDTH: 1920
+      #  HEIGHT: 1080
+      #  RATE: 60
 
     ARRANGE: ROW
     ALIGN: BOTTOM
-
-    DISABLED:
-      - '!^DP-\d'
-
