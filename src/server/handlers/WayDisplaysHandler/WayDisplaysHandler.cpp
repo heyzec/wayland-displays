@@ -93,14 +93,16 @@ static vector<DisplaySettable> arrange_displays(vector<DisplaySettable> displays
   // Find maximum width/height among all displays along the cross axis
   int size_cross_max = 0;
   for (const auto display : displays) {
-    int size_cross = arrange == ROW ? display.size_y.value() : display.size_x.value();
+    bool is_main_x = (arrange == ROW) ^ (display.transform.value() % 2 == 1);
+    int size_cross = is_main_x ? display.size_y.value() : display.size_x.value();
     size_cross_max = size_cross > size_cross_max ? size_cross : size_cross_max;
   }
 
   int pos_main = 0;
   for (auto &display : displays) {
+    bool is_main_x = (arrange == ROW) ^ (display.transform.value() % 2 == 1);
     // 1. Assign coordinate on main axis
-    if (arrange == ROW) {
+    if (is_main_x) {
       display.pos_x = pos_main;
       pos_main += display.size_x.value();
     } else {
@@ -109,7 +111,7 @@ static vector<DisplaySettable> arrange_displays(vector<DisplaySettable> displays
     }
 
     // 2. Assign coordinate on cross axis
-    int size_cross = (arrange == ROW ? display.size_y.value() : display.size_x.value());
+    int size_cross = (is_main_x ? display.size_y.value() : display.size_x.value());
     int pos_cross;
     if (align == TOP_OR_LEFT) {
       pos_cross = 0;
@@ -118,7 +120,7 @@ static vector<DisplaySettable> arrange_displays(vector<DisplaySettable> displays
     } else {
       pos_cross = size_cross_max - size_cross;
     }
-    if (arrange == ROW) {
+    if (is_main_x) {
       display.pos_y = pos_cross;
     } else {
       display.pos_x = pos_cross;
