@@ -64,3 +64,25 @@ TEST_CASE("find_display()") {
     REQUIRE(find_display(displays, "DP-1") == 1);
   }
 }
+
+TEST_CASE("assign_displays()") {
+  SECTION("should assign correctly when #displays > #patterns") {
+    vector<DisplayInfo> displays = {
+        create_display("DP-1", "Description of DP-1"),
+        create_display("DP-2", "Description of DP-2"),
+    };
+    vector<string> patterns = {"!DP-\\d"};
+    REQUIRE(assign_displays(displays, patterns) == std::map<string, string>{
+                                                       {"DP-1", "!DP-\\d"},
+                                                   });
+  }
+  SECTION("should assign correctly when #displays < #patterns") {
+    vector<DisplayInfo> displays = {
+        create_display("DP-1", "Samsung Display"),
+    };
+    vector<string> patterns = {"!Samsung", "!DP-\\d"};
+    REQUIRE(assign_displays(displays, patterns) == std::map<string, string>{
+                                                       {"DP-1", "!Samsung"},
+                                                   });
+  }
+}

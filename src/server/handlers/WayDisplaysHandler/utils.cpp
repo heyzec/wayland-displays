@@ -27,51 +27,73 @@ int find_display(const vector<DisplayInfo> displays, const string pattern) {
   return -1;
 }
 
-std::pair<vector<DisplayInfo>, vector<DisplayInfo>>
-match_displays(const vector<DisplayInfo> displays, const vector<string> patterns) {
+/**
+ * Assign displays to patterns.
+ * Each display can only be matched once.
+ */
+std::map<string, string> assign_displays(const vector<DisplayInfo> displays,
+                                         const vector<string> patterns) {
   vector<DisplayInfo> unmatched = displays;
-  vector<DisplayInfo> matched;
+  std::map<string, string> assignments;
 
   for (auto pattern : patterns) {
     int index = find_display(unmatched, pattern);
     if (index != -1) {
-      matched.push_back(unmatched.at(index));
+      assignments[unmatched.at(index).name] = pattern;
       unmatched.erase(unmatched.begin() + index);
     }
   }
 
-  return std::pair(matched, unmatched);
-}
-
-/**
- * Finds and returns a subset of displays from the given vector that match the provided patterns.
- * Each display can only be matched once.
- * If no match is found for a pattern, an empty vector is returned.
- */
-vector<DisplayInfo> find_displays(const vector<DisplayInfo> displays,
-                                  const vector<string> patterns) {
-  auto [matched, unmatched] = match_displays(displays, patterns);
-  return matched;
-}
-
-bool does_profile_match(const vector<DisplayInfo> displays, const Profile profile) {
-  auto [matched, unmatched] = match_displays(displays, profile.displays);
-  return unmatched.size() == 0;
-}
-
-/**
- * Find profile that matches the current display configuration.
- */
-Profile find_matching_profile(const vector<Profile> profiles, const vector<DisplayInfo> displays) {
-  Profile matched;
-  for (Profile profile : profiles) {
-    if (does_profile_match(displays, profile)) {
-      matched = profile;
-      break;
-    }
+  for (auto it = assignments.begin(); it != assignments.end(); it++) {
+    auto [name, pattern] = *it;
+    printf("assignments[%s] = %s\n", name.c_str(), pattern.c_str());
   }
 
-  return matched;
+  return assignments;
+}
+
+// /**
+//  * Finds and returns a subset of displays from the given vector that match the provided patterns.
+//  * Each display can only be matched once.
+//  * If no match is found for a pattern, an empty vector is returned.
+//  */
+// vector<DisplayInfo> find_displays(const vector<DisplayInfo> displays,
+//                                   const vector<string> patterns) {
+//   std::map<string, string> assignments = assign_displays(displays, patterns);
+//   return matched;
+// }
+
+// bool does_profile_match(const vector<DisplayInfo> displays, const Profile profile) {
+//   vector<string> patterns;
+//   for (const auto &pair : profile.displays) {
+//     string pattern = pair.first;
+//     patterns.push_back(pattern);
+//   }
+//   std::map<string, string> assignments = assign_displays(displays, patterns);
+//   printf("assignments.size() = %lu, patterns.size() = %lu\n", assignments.size(),
+//   patterns.size()); return assignments.size() == patterns.size();
+// }
+
+/**
+ * Find profile that (exactly) matches the current display configuration.
+ * Also return the assignment of displays.
+ */
+std::optional<std::pair<Profile, std::map<string, string>>>
+find_matching_profile(const vector<Profile> profiles, const vector<DisplayInfo> displays) {
+  vector<string> patterns;
+  for (Profile profile : profiles) {
+    for (const auto &pair : profile.displays) {
+      string pattern = pair.first;
+      patterns.push_back(pattern);
+    }
+    std::map<string, string> assignments = assign_displays(displays, patterns);
+    // Criteria for a match: all displays are matched
+    // Can consider relaxing this requirement, e.g. score based partial matches
+    if (assignments.size() == patterns.size()) {
+      return std::make_pair(profile, assignments);
+    }
+  }
+  return std::nullopt;
 }
 
 /**
