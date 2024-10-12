@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <yaml-cpp/yaml.h>
 
 #include <string.h>
@@ -8,8 +9,19 @@
 
 using string = std::string;
 
+struct ModeInfo {
+  /* Width of the output in hardware units */
+  int size_x;
+  /* Height of the output in hardware units */
+  int size_y;
+  /* Fixed vertical hardware refresh rate in mHz */
+  int rate;
+  /* Whether this mode is preferred */
+  bool preferred;
+};
+
 struct DisplayConfig {
-  char *name;
+  char *name; // NOTE: It is unusual that name is the only attribute that is readonly here
   bool enabled;
   int pos_x;
   int pos_y;
@@ -25,17 +37,6 @@ struct DisplayConfig {
   void show();
 };
 
-struct ModeInfo {
-  /* Width of the output in hardware units */
-  int size_x;
-  /* Height of the output in hardware units */
-  int size_y;
-  /* Fixed vertical hardware refresh rate in mHz */
-  int rate;
-  /* Whether this mode is preferred */
-  bool preferred;
-};
-
 struct DisplayInfo : DisplayConfig {
   char *description;
 
@@ -43,6 +44,22 @@ struct DisplayInfo : DisplayConfig {
   int phy_y;
 
   std::vector<ModeInfo> modes;
+
+  /* For easy debugging */
+  void show();
+};
+
+struct DisplaySettable {
+  std::optional<bool> enabled;
+  std::optional<int> pos_x;
+  std::optional<int> pos_y;
+  std::optional<float> scale;
+  std::optional<int> transform;
+
+  // Properties of the current mode
+  std::optional<int> size_x;
+  std::optional<int> size_y;
+  std::optional<int> rate;
 
   /* For easy debugging */
   void show();
@@ -120,6 +137,39 @@ template <> struct convert<DisplayInfo> {
     rhs.phy_x = node["WIDTH_MM"].as<int>();
     rhs.phy_y = node["HEIGHT_MM"].as<int>();
     rhs.modes = node["MODES"].as<std::vector<ModeInfo>>();
+
+    return true;
+  }
+};
+
+template <> struct convert<DisplaySettable> {
+  static bool decode(const Node &node, DisplaySettable &rhs) {
+    if (node["ENABLED"]) {
+      rhs.enabled = node["ENABLED"].as<bool>();
+    }
+    if (node["POSITION_X"]) {
+      rhs.pos_x = node["POSITION_X"].as<int>();
+    }
+    if (node["POSITION_Y"]) {
+      rhs.pos_y = node["POSITION_Y"].as<int>();
+    }
+    if (node["SCALE"]) {
+      rhs.scale = node["SCALE"].as<float>();
+    }
+    if (node["TRANSFORM"]) {
+      rhs.transform = node["TRANSFORM"].as<int>();
+    }
+
+    // Properties of the current mode
+    if (node["WIDTH"]) {
+      rhs.size_x = node["WIDTH"].as<int>();
+    }
+    if (node["HEIGHT"]) {
+      rhs.size_y = node["HEIGHT"].as<int>();
+    }
+    if (node["HZ"]) {
+      rhs.rate = node["HZ"].as<int>();
+    }
 
     return true;
   }
