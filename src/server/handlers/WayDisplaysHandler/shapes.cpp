@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/shapes.hpp"
 #include <string>
 #include <vector>
 #include <yaml-cpp/yaml.h>
@@ -22,9 +23,10 @@ struct Profile {
   string name;
   Arrange arrange;
   Align align;
-  vector<string> displays;
-  vector<string> order;
-  vector<string> disabled;
+  std::map<string, DisplaySettable> displays;
+  // vector<string> displays;
+  // vector<string> order;
+  // vector<string> disabled;
 };
 
 struct Config {
@@ -60,22 +62,17 @@ template <> struct convert<Profile> {
       return false;
     }
 
-    if (!node["DISPLAYS"]) {
-      rhs.order = vector<string>();
-    } else {
-      rhs.displays = node["DISPLAYS"].as<vector<string>>();
-    }
-
-    if (!node["ORDER"]) {
-      rhs.order = vector<string>();
-    } else {
-      rhs.order = node["ORDER"].as<vector<string>>();
-    }
-
-    if (!node["DISABLED"]) {
-      rhs.disabled = vector<string>();
-    } else {
-      rhs.disabled = node["DISABLED"].as<vector<string>>();
+    for (YAML::Node matcher : node["DISPLAYS"]) {
+      string name;
+      DisplaySettable settable;
+      if (matcher.IsScalar()) {
+        name = matcher.as<string>();
+      } else {
+        name = matcher["NAME"].as<string>();
+        settable = matcher.as<DisplaySettable>();
+        settable.show();
+      }
+      rhs.displays[name] = settable;
     }
 
     return true;
@@ -100,8 +97,8 @@ template <> struct convert<Config> {
       Profile profile;
       try {
         profile = yaml_profile.as<Profile>();
-      } catch (YAML::Exception) {
-        printf("Profile \"%s\" is malformed, ignoring!\n", profile_name.c_str());
+      } catch (YAML::Exception &e) {
+        printf("Profile \"%s\" is malformed, ignoring: %s\n", profile_name.c_str(), e.what());
         continue;
       }
       profile.name = profile_name;
