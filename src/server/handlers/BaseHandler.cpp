@@ -1,4 +1,7 @@
 #include "common/shapes.hpp"
+#include "server/handlers/WayDisplaysHandler/shapes.cpp"
+
+#include <optional>
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
@@ -11,7 +14,7 @@ public:
    * Otherwise, return NULL if no changes are required.
    */
   virtual std::vector<DisplayConfig> *handle_change(std::vector<DisplayInfo> *heads,
-                                                    YAML::Node config) = 0;
+                                                    std::optional<Config> config) = 0;
 
   /**
    * Callback for when an IPC command requested.
@@ -20,5 +23,5 @@ public:
    */
   virtual std::vector<DisplayConfig> *handle_command(string command, string param,
                                                      std::vector<DisplayInfo> *heads,
-                                                     YAML::Node node) = 0;
+                                                     std::optional<Config> node) = 0;
 };

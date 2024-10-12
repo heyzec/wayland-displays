@@ -84,7 +84,12 @@ template <> struct convert<Profile> {
 
 template <> struct convert<Config> {
   static bool decode(const Node &node, Config &rhs) {
-    YAML::Node profiles = node["PROFILES"];
+    YAML::Node profiles;
+    try {
+      profiles = node["PROFILES"];
+    } catch (YAML::Exception) {
+      return false;
+    }
     if (!profiles.IsMap()) {
       return false;
     }
@@ -92,7 +97,13 @@ template <> struct convert<Config> {
     for (YAML::const_iterator it = profiles.begin(); it != profiles.end(); it++) {
       std::string profile_name = it->first.as<std::string>();
       YAML::Node yaml_profile = it->second;
-      Profile profile = yaml_profile.as<Profile>();
+      Profile profile;
+      try {
+        profile = yaml_profile.as<Profile>();
+      } catch (YAML::Exception) {
+        printf("Profile \"%s\" is malformed, ignoring!\n", profile_name.c_str());
+        continue;
+      }
       profile.name = profile_name;
       rhs.profiles.push_back(profile);
     }
