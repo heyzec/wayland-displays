@@ -85,9 +85,31 @@ int ipc_socket_create(const char *socket_path) {
 
   // Bind the socket
   if (bind(fd_server_sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-    log_critical("Error binding socket: {}", strerror(errno));
-    close(fd_server_sock);
-    exit(1);
+    if (errno != EADDRINUSE) {
+      log_critical("Error binding existing socket: {}", strerror(errno));
+      close(fd_server_sock);
+      exit(1);
+    }
+
+    // Socket exists; probe for live server
+    int probe = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (probe >= 0) {
+      bool live = connect(probe, (struct sockaddr *)&addr, sizeof(addr)) == 0;
+      close(probe);
+      if (live) {
+        log_critical("Another instance is already running on {}", socket_path);
+        close(fd_server_sock);
+        exit(1);
+      }
+    }
+
+    // Stale socket; remove and retry.
+    remove(socket_path);
+    if (bind(fd_server_sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+      log_critical("Error binding socket after removing stale socket: {}", strerror(errno));
+      close(fd_server_sock);
+      exit(1);
+    }
   }
 
   // Listen for connections
@@ -197,7 +219,12 @@ void reset_all_pfds() {
 
 bool handle_socket(int client_sock) {
   YAML::Node request_node = socket_read(client_sock);
-  IpcRequest request = request_node.as<IpcRequest>();
+  IpcRequest request;
+  try {
+    request = request_node.as<IpcRequest>();
+  } catch (const YAML::Exception &) {
+    return true;
+  }
   IpcResponse response = handle_ipc_request(request, config);
   YAML::Node response_node = YAML::Node(response);
   if (response_node.IsNull()) {

@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <yaml-cpp/yaml.h>
 
+// TODO: create symmetric: IpcRequest receive_ipc_request(int fd_client_sock);
+
 IpcResponse send_ipc_request(IpcRequest request) {
   std::visit([](auto &&req) { log_debug("Sending request: {}", req.op); }, request);
 
