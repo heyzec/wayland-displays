@@ -85,8 +85,13 @@ int ipc_socket_create(const char *socket_path) {
   // Bind the socket
   if (bind(fd_server_sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
     perror("Error binding socket");
-    close(fd_server_sock);
-    exit(1);
+    remove(socket_path);
+    if (bind(fd_server_sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+      perror("Error binding socket two times");
+      remove(socket_path);
+      close(fd_server_sock);
+      exit(1);
+    }
   }
 
   // Listen for connections
