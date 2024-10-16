@@ -1,10 +1,10 @@
 #pragma once
 
+#include "common/ipc/get.hpp"
 #include "gui/canvas.hpp"
 #include "gui/details.hpp"
 
 #include "common/ipc.hpp"
-#include "common/ipc_request.hpp"
 #include "common/shapes.hpp"
 
 #include "resources.c"
@@ -123,8 +123,8 @@ GtkWidget *get_window() {
 void update_displays_from_server() {
   // Get displays state via IPC
   IpcGetRequest request = {};
-  YAML::Node response = send_ipc_request(request);
-  displays = response["STATE"]["HEADS"].as<vector<DisplayInfo>>();
+  IpcGetResponse response = std::get<IpcGetResponse>(send_ipc_request(request));
+  displays = response.heads;
 }
 
 void refresh_gui() {
