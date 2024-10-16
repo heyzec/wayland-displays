@@ -1,4 +1,5 @@
 #include "common/ipc.hpp"
+#include "common/ipc/union.hpp"
 #include "common/paths.hpp"
 #include "common/socket.hpp"
 
@@ -6,7 +7,7 @@
 #include <sys/un.h>
 #include <yaml-cpp/yaml.h>
 
-YAML::Node send_ipc_request(IpcRequest request) {
+IpcResponse send_ipc_request(IpcRequest request) {
   // Create a UNIX domain socket
   int fd_client_sock = socket(AF_UNIX, SOCK_STREAM, 0);
   if (fd_client_sock < 0) {
@@ -32,6 +33,11 @@ YAML::Node send_ipc_request(IpcRequest request) {
   socket_write(fd_client_sock, node);
 
   // Read response
-  YAML::Node response = socket_read(fd_client_sock);
+  YAML::Node response_node = socket_read(fd_client_sock);
+  printf("Received response\n");
+  printf("OP: %s\n", response_node["OP"].as<std::string>().c_str());
+  printf("HEADS exists?: %s\n", response_node["HEADS"] ? "yes" : "no");
+  IpcResponse response = response_node.as<IpcResponse>();
+  printf("It is now a IpcResponse\n");
   return response;
 }

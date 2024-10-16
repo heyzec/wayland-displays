@@ -1,4 +1,7 @@
 #include "common/ipc.hpp"
+#include "common/ipc/get.hpp"
+#include "common/ipc/set.hpp"
+#include "common/ipc/switch.hpp"
 #include "server/handlers/DefaultHandler.cpp"
 
 #include "common/shapes.hpp"
@@ -8,19 +11,18 @@
 #include <variant>
 #include <yaml-cpp/yaml.h>
 
-YAML::Node handle_get(IpcGetRequest yaml) {
+IpcGetResponse handle_get(IpcGetRequest yaml) {
   std::vector<DisplayInfo> heads = get_head_infos();
-  YAML::Node node;
-  node["STATE"]["HEADS"] = heads;
-  return node;
+  IpcGetResponse response = IpcGetResponse(heads);
+  return response;
 }
 
-YAML::Node handle_set(IpcSetRequest request) {
+IpcSetResponse handle_set(IpcSetRequest request) {
   apply_configurations(request.heads);
-  return YAML::Node{};
+  return IpcSetResponse(true);
 }
 
-YAML::Node handle_switch(IpcSwitchRequest request, std::optional<Config> config) {
+IpcSwitchResponse handle_switch(IpcSwitchRequest request, std::optional<Config> config) {
   string profile_name = request.profile_name;
   auto handler = DefaultHandler();
   std::vector<DisplayInfo> heads = get_head_infos();
@@ -29,12 +31,10 @@ YAML::Node handle_switch(IpcSwitchRequest request, std::optional<Config> config)
   if (changes != nullptr) {
     apply_configurations(*changes);
   }
-  return YAML::Node{};
+  return IpcSwitchResponse(true);
 }
 
-YAML::Node handle_ipc_request(IpcRequest request, std::optional<Config> config) {
-  // TODO: SLAP this function by returning IpcResponse
-
+IpcResponse handle_ipc_request(IpcRequest request, std::optional<Config> config) {
   printf("Someone's knocking...\n");
 
   if (auto *v = std::get_if<IpcGetRequest>(&request)) {
@@ -48,7 +48,8 @@ YAML::Node handle_ipc_request(IpcRequest request, std::optional<Config> config) 
   }
 
   // This should not occur
-  return YAML::Node{};
+  printf("Unknown request type\n");
+  return IpcResponse();
 
   // // Unable to reply now, keep socket open and we will reply later
   // return null;

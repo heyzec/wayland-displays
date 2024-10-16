@@ -197,12 +197,13 @@ void reset_all_pfds() {
 bool handle_socket(int client_sock) {
   YAML::Node yaml = socket_read(client_sock);
   IpcRequest request = yaml.as<IpcRequest>();
-  YAML::Node response = handle_ipc_request(request, config);
-  if (response.IsNull()) {
+  IpcResponse response = handle_ipc_request(request, config);
+  YAML::Node node = YAML::Node(response);
+  if (node.IsNull()) {
     return true;
   }
 
-  socket_write(client_sock, response);
+  socket_write(client_sock, node);
   return true;
 }
 
