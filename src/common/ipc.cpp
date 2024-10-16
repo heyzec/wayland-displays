@@ -1,6 +1,4 @@
 #include "common/ipc.hpp"
-
-#include "common/ipc_request.hpp"
 #include "common/paths.hpp"
 #include "common/socket.hpp"
 

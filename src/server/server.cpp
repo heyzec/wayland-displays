@@ -1,4 +1,3 @@
-#include "common/ipc_request.hpp"
 #include "server/handlers/DefaultHandler.cpp"
 #include "server/ipc.cpp"
 

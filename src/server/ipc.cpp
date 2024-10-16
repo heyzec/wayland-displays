@@ -1,4 +1,4 @@
-#include "common/ipc_request.hpp"
+#include "common/ipc.hpp"
 #include "server/handlers/DefaultHandler.cpp"
 
 #include "common/shapes.hpp"

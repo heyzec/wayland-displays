@@ -4,7 +4,6 @@
 #include "gui/details.hpp"
 
 #include "common/ipc.hpp"
-#include "common/ipc_request.hpp"
 #include "common/shapes.hpp"
 
 #include "resources.c"
