@@ -1,5 +1,6 @@
 #include "common/ipc.hpp"
 #include "common/ipc/union.hpp"
+#include "common/logger.hpp"
 #include "common/paths.hpp"
 #include "common/socket.hpp"
 
@@ -8,10 +9,12 @@
 #include <yaml-cpp/yaml.h>
 
 IpcResponse send_ipc_request(IpcRequest request) {
+  std::visit([](auto &&req) { log_debug("Sending request: {}", req.op); }, request);
+
   // Create a UNIX domain socket
   int fd_client_sock = socket(AF_UNIX, SOCK_STREAM, 0);
   if (fd_client_sock < 0) {
-    perror("Error creating socket");
+    log_critical("Error creating socket: {}", strerror(errno));
     exit(1);
   }
 
@@ -23,7 +26,7 @@ IpcResponse send_ipc_request(IpcRequest request) {
 
   // Connect to server
   if (connect(fd_client_sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-    perror("connect");
+    log_critical("Error connecting to socket: {}", strerror(errno));
     exit(1);
   }
 

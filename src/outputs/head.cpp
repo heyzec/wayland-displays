@@ -77,7 +77,6 @@ static void transform(void *data, struct zwlr_output_head_v1 *wlr_head, const in
 static void scale(void *data, struct zwlr_output_head_v1 *wlr_head, const fixed24_8 scale) {
   auto head = (Head *)data;
   head->info.scale = fixed_to_float(scale);
-  printf("Scale %f\n", fixed_to_float(scale));
 }
 
 static void finished(void *data, struct zwlr_output_head_v1 *wlr_head) {
@@ -106,7 +105,7 @@ static void serial_number(void *data, struct zwlr_output_head_v1 *head, const ch
 }
 
 static void adaptive_sync(void *data, struct zwlr_output_head_v1 *head, uint adaptive_sync) {
-  printf("Adaptive Sync: %d\n", adaptive_sync);
+  // printf("Adaptive Sync: %d\n", adaptive_sync);
 }
 
 static const struct zwlr_output_head_v1_listener head_listener = {

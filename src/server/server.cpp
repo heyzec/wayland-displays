@@ -1,6 +1,7 @@
 #include "server/handlers/DefaultHandler.cpp"
 #include "server/ipc.cpp"
 
+#include "common/logger.hpp"
 #include "common/paths.hpp"
 #include "common/socket.hpp"
 #include "outputs/outputs.hpp"
@@ -64,7 +65,7 @@ static std::optional<Config> get_config(const char *config_path) {
     Config config = node.as<Config>();
     return config;
   } catch (YAML::BadConversion &e) {
-    fprintf(stderr, "Error parsing config file: %s\n", e.what());
+    log_warn("Error parsing config file: {}", e.what());
     return std::nullopt;
   }
 }
@@ -73,7 +74,7 @@ int ipc_socket_create(const char *socket_path) {
   // Create a UNIX domain socket
   int fd_server_sock = socket(AF_UNIX, SOCK_STREAM, 0);
   if (fd_server_sock < 0) {
-    perror("Error creating socket");
+    log_critical("Error creating socket: {}", strerror(errno));
     exit(1);
   }
 
@@ -84,14 +85,14 @@ int ipc_socket_create(const char *socket_path) {
 
   // Bind the socket
   if (bind(fd_server_sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-    perror("Error binding socket");
+    log_critical("Error binding socket: {}", strerror(errno));
     close(fd_server_sock);
     exit(1);
   }
 
   // Listen for connections
   if (listen(fd_server_sock, 5) < 0) {
-    perror("Error listening on socket");
+    log_critical("Error listening on socket: {}", strerror(errno));
     close(fd_server_sock);
     exit(1);
   }
@@ -117,7 +118,7 @@ int setup_signals() {
   // Use signalfd to receive signals as file descriptor events
   int fd_signal = signalfd(-1, &mask, 0);
   if (fd_signal == -1) {
-    perror("Error creating fd_signal");
+    log_critical("Error creating fd_signal: {}", strerror(errno));
     exit(1);
   }
 
@@ -138,7 +139,7 @@ void reload_rewatch_config() {
   // Note that need reload watch because editors that overwrite file will change file inode
   wd = inotify_add_watch(fd_config, config_path, IN_MODIFY);
   if (wd == -1) {
-    perror("inotify");
+    log_warn("Error adding inotify watch: {}", strerror(errno));
   }
 }
 
@@ -157,7 +158,7 @@ void server_init() {
     fd_config = inotify_init();
     reload_rewatch_config();
   } else {
-    printf("WARN: Config file not found at: %s\n", config_path_s.c_str());
+    log_warn("Config file not found at: {}", config_path_s);
   }
 
   // Wayland
@@ -244,7 +245,7 @@ void server_loop() {
     // Block with infinite timeout until event occurs
     int num_events = poll(all_pfds.data(), all_pfds.size(), -1);
     if (num_events < 0) {
-      perror("Error polling for events");
+      log_critical("Error polling for events: {}", strerror(errno));
       close(fd_server_sock);
       exit(1);
     }
@@ -266,9 +267,8 @@ void server_loop() {
       // If false, another pending request not been resolved, don't accept this yet
       if (fd_client_sock == 0) {
         int client_sock = accept(fd_server_sock, nullptr, nullptr);
-        printf("Server: Accepted connection\n");
         if (client_sock < 0) {
-          perror("Error accepting a connection");
+          log_warn("Error accepting a connection", strerror(errno));
           continue;
         }
         bool completed = handle_socket(client_sock);
@@ -284,7 +284,7 @@ void server_loop() {
       struct signalfd_siginfo si;
       read(fd_signal, &si, sizeof(si));
       if (si.ssi_signo == SIGINT) {
-        printf("Received SIGINT\n");
+        log_info("Received SIGINT, terminating gracefully...");
         break;
       }
     }
@@ -292,7 +292,7 @@ void server_loop() {
     if (pfd_config->revents) {
       struct inotify_event ev;
       read(fd_config, &ev, sizeof(ev));
-      printf("Config changed, reloading\n");
+      log_info("Detected change in config, reloading...");
       reload_rewatch_config();
       refresh_displays(std::vector<DisplayInfo>());
     }

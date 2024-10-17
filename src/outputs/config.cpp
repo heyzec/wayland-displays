@@ -2,19 +2,20 @@
  * Handlers and listeners for zwlr_output_configuration
  * https://wayland.app/protocols/wlr-output-management-unstable-v1#zwlr_output_configuration_v1
  */
+#include "common/logger.hpp"
+
 #include "wlr-output-management-unstable-v1.h"
-#include <cstdio>
 
 static void succeeded(void *data, struct zwlr_output_configuration_v1 *config) {
-  printf("==Succeeded==\n");
+  log_debug("Event: Succeeded");
 }
 
 static void failed(void *data, struct zwlr_output_configuration_v1 *config) {
-  printf("==Failed==\n");
+  log_debug("Event: Failed");
 }
 
 static void cancelled(void *data, struct zwlr_output_configuration_v1 *config) {
-  printf("==Cancelled==\n");
+  log_debug("Event: Cancelled");
 }
 
 static const struct zwlr_output_configuration_v1_listener config_listener = {

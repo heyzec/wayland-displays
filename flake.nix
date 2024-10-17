@@ -43,6 +43,7 @@
                 wayland-scanner
                 yaml-cpp
                 catch2_3
+                spdlog
               ];
 
               buildInputs = [ ];

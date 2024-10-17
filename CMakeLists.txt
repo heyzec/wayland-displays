@@ -57,6 +57,10 @@ pkg_check_modules(YAML_CPP REQUIRED yaml-cpp)
 include_directories(${YAML_CPP_INCLUDE_DIRS})
 target_link_libraries(wayland-displays PUBLIC ${YAML_CPP_LIBRARIES})
 
+find_package(spdlog REQUIRED)
+target_link_libraries(wayland-displays PRIVATE spdlog::spdlog)
+add_compile_definitions(SPDLOG_FMT_EXTERNAL)
+
 ########################################
 # Generated protocols
 ########################################

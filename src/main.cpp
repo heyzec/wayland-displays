@@ -1,10 +1,12 @@
 #include "argparse/argparse.h"
+#include "common/logger.hpp"
 #include "ctl/ctl.cpp"
 #include "gui/gui.cpp"
 #include "sandbox.cpp"
 #include "server/server.cpp"
 
 int main(int argc, char *argv[]) {
+  init_logger();
   ArgumentParser parser;
 
   parser.add_argument("-s", "--server")->action(STORE_TRUE)->help("start the daemon");
