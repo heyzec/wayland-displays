@@ -1,5 +1,7 @@
 #pragma once
 
+#include "common/logger.hpp"
+
 #include <string>
 #include <vector>
 #include <yaml-cpp/yaml.h>
@@ -101,7 +103,7 @@ template <> struct convert<Config> {
       try {
         profile = yaml_profile.as<Profile>();
       } catch (YAML::Exception) {
-        printf("Profile \"%s\" is malformed, ignoring!\n", profile_name.c_str());
+        log_warn("Profile \"{}\" is malformed, ignoring!", profile_name.c_str());
         continue;
       }
       profile.name = profile_name;

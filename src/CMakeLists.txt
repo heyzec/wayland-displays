@@ -6,6 +6,7 @@ set(SOURCES
     outputs/config.cpp
     outputs/mode.cpp
     common/ipc.cpp
+    common/logger.cpp
     common/paths.cpp
     common/shapes.cpp
     common/socket.cpp
