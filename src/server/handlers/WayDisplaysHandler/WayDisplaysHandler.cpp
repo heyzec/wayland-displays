@@ -1,3 +1,4 @@
+#include "common/logger.hpp"
 #include "server/handlers/BaseHandler.cpp"
 #include "server/handlers/WayDisplaysHandler/shapes.cpp"
 #include "server/handlers/WayDisplaysHandler/utils.hpp"
@@ -141,7 +142,7 @@ public:
     if (profile.name == "") {
       return new vector<DisplayConfig>();
     }
-    printf("Matched profile: %s\n", profile.name.c_str());
+    log_info("Matched profile: {}", profile.name);
     return get_profile_config(profile, heads);
   }
 
@@ -160,7 +161,7 @@ public:
     if (profile.name == "") {
       return new vector<DisplayConfig>();
     }
-    printf("Switching to profile: %s\n", profile.name.c_str());
+    log_info("Switching to profile: {}", profile.name);
     return get_profile_config(profile, heads);
   }
 };

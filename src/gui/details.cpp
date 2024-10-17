@@ -1,7 +1,8 @@
 #include "gui/details.hpp"
-
 #include "common/ipc.hpp"
+#include "common/logger.hpp"
 #include "common/shapes.hpp"
+
 #include "togglegroup/togglegroup.hpp"
 
 #include <gtk/gtk.h>
@@ -167,7 +168,7 @@ void on_transform_menu_clicked(GtkWidget *transform_button) {
   string name = gtk_widget_get_name(transform_button);
   int enum_value = name[name.length() - 1] - '0';
   if (!(0 <= enum_value && enum_value < 8)) {
-    printf("transform enum_value is unexpected\n");
+    log_warn("transform enum_value is unexpected\n");
     return;
   }
 

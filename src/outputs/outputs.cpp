@@ -4,6 +4,7 @@
 #include "outputs/shapes.hpp"
 
 #include "common/fixed24_8.hpp"
+#include "common/logger.hpp"
 #include "common/time.hpp"
 
 #include "wlr-output-management-unstable-v1.h"
@@ -56,7 +57,7 @@ static void done(void *data, struct zwlr_output_manager_v1 *manager, uint32_t se
 }
 
 static void finished(void *data, struct zwlr_output_manager_v1 *manager) {
-  printf("==Finished==\n");
+  log_debug("Event: Finished");
 }
 
 static const struct zwlr_output_manager_v1_listener manager_listener = {
@@ -73,7 +74,7 @@ static const struct zwlr_output_manager_v1_listener manager_listener = {
 static void global(void *data, struct wl_registry *registry, uint32_t name, const char *interface,
                    uint32_t version) {
   if (strcmp(interface, zwlr_output_manager_v1_interface.name) == 0) {
-    printf("interface: '%s', version: %d, name: %d\n", interface, version, name);
+    // printf("interface: '%s', version: %d, name: %d\n", interface, version, name);
     struct zwlr_output_manager_v1 *manager = (zwlr_output_manager_v1 *)wl_registry_bind(
         registry, name, &zwlr_output_manager_v1_interface, version);
     state->manager = manager;
@@ -99,7 +100,7 @@ void wlr_output_init() {
   // Connect to compositor and get the Wayland display singleton
   wl_display *display = wl_display_connect(NULL);
   if (!display) {
-    fprintf(stderr, "Failed to connect to Wayland display.\n");
+    log_critical("Failed to connect to Wayland display.");
     exit(1);
   }
   state->display = display;
@@ -195,14 +196,12 @@ void attach_on_done(void (*on_done)(std::vector<DisplayInfo>)) {
 }
 
 void apply_configurations(vector<DisplayConfig> configs) {
-  printf("Apply new configuration changes...\n");
-
   if (state->display == nullptr) {
-    printf("wl_display is null!\n");
+    log_warn("wl_display is null!\n");
     return;
   }
   if (state->manager == nullptr) {
-    printf("zwlr_output_manager is null!\n");
+    log_warn("zwlr_output_manager is null!\n");
     return;
   }
 
@@ -210,12 +209,14 @@ void apply_configurations(vector<DisplayConfig> configs) {
       zwlr_output_manager_v1_create_configuration(state->manager, state->serial);
   zwlr_output_configuration_v1_add_listener(zwlr_config, get_config_listener(), state->display);
 
+  log_debug("Applying new configuration changes to {} displays...", configs.size());
   for (DisplayConfig config : configs) {
     for (Head *head : state->heads) {
       if (strcmp(config.name, head->info.name) != 0) {
         continue;
       }
       if (!config.enabled) {
+        log_debug("Disabling {}", config.name);
         zwlr_output_configuration_v1_disable_head(zwlr_config, head->wlr_head);
         break;
       }
@@ -229,9 +230,9 @@ void apply_configurations(vector<DisplayConfig> configs) {
       zwlr_output_configuration_head_v1_set_scale(config_head, float_to_fixed(config.scale));
       zwlr_output_configuration_head_v1_set_transform(config_head, config.transform);
 
-      printf("Setting %s: Position (%d,%d) Size %dx%d Scale %f Rate %d Transform %d\n", config.name,
-             config.pos_x, config.pos_y, config.size_x, config.size_y, config.scale, config.rate,
-             config.transform);
+      log_debug("Enabling {}: Position ({}, {}) Size {}x{} Scale {} Rate {} Transform {}",
+                config.name, config.pos_x, config.pos_y, config.size_x, config.size_y, config.scale,
+                config.rate, config.transform);
       break;
     }
   }
@@ -242,7 +243,7 @@ void apply_configurations(vector<DisplayConfig> configs) {
   // Safety mechanism
   if ((time_in_ms() - state->last_updated) < 2000) {
     if (state->n_bursty_update > 3) {
-      printf("Changes being applied too quickly, exiting to not break stuff...\n");
+      log_critical("Changes being applied too quickly, exiting to not break stuff...\n");
       // TODO: Proper cleanup
       exit(1);
     }

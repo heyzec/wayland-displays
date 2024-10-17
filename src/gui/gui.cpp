@@ -1,11 +1,12 @@
 #pragma once
 
+#include "common/ipc.hpp"
 #include "common/ipc/get.hpp"
+#include "common/logger.hpp"
+#include "common/shapes.hpp"
+
 #include "gui/canvas.hpp"
 #include "gui/details.hpp"
-
-#include "common/ipc.hpp"
-#include "common/shapes.hpp"
 
 #include "resources.c"
 
@@ -61,7 +62,7 @@ vector<Box> create_boxes_from_displays(vector<DisplayInfo> displays) {
 
 void update_displays_from_boxes(vector<DisplayInfo> *displays, const vector<Box> boxes) {
   if (displays->size() != boxes.size()) {
-    printf("Vector sizes do not match!\n");
+    log_warn("Vector sizes do not match!\n");
     return;
   }
 

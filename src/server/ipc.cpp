@@ -35,16 +35,16 @@ IpcSwitchResponse handle_switch(IpcSwitchRequest request, std::optional<Config> 
 }
 
 IpcResponse handle_ipc_request(IpcRequest request, std::optional<Config> config) {
-  printf("Someone's knocking...\n");
+  std::visit([](auto &&req) { log_debug("Handling request: {}", req.op); }, request);
 
-  if (auto *v = std::get_if<IpcGetRequest>(&request)) {
-    return handle_get(*v);
+  if (auto *req = std::get_if<IpcGetRequest>(&request)) {
+    return handle_get(*req);
   }
-  if (auto *v = std::get_if<IpcSetRequest>(&request)) {
-    return handle_set(*v);
+  if (auto *req = std::get_if<IpcSetRequest>(&request)) {
+    return handle_set(*req);
   }
-  if (auto *v = std::get_if<IpcSwitchRequest>(&request)) {
-    return handle_switch(*v, config);
+  if (auto *req = std::get_if<IpcSwitchRequest>(&request)) {
+    return handle_switch(*req, config);
   }
 
   // This should not occur
