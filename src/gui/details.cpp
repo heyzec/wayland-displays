@@ -30,7 +30,7 @@ static GtkComboBoxText *modes_combobox;
 static GtkLabel *transform_button_label;
 static GtkPopover *transform_menu;
 
-// Initialise it with no-op
+// To be called when details on the GUI needs to be updated
 static void (*on_details_updated)(int, DisplayInfo) = [](int, DisplayInfo) {};
 
 // ============================================================
@@ -103,7 +103,8 @@ void update_transform_label(int enum_value) {
 
 void on_active_toggled(ToggleGroup *toggle_group, void *data) {
   selected_display = toggle_group_get_active(toggle_group);
-  on_details_updated(selected_display, DisplayInfo());
+  DisplayInfo display = displays.at(selected_display);
+  on_details_updated(selected_display, display);
 }
 gboolean on_enabled_changed(GtkSwitch *enabled_switch) {
   DisplayInfo display = displays.at(selected_display);

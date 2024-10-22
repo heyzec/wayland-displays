@@ -158,10 +158,6 @@ void setup_gui() {
   });
 
   attach_details_updated_callback([](int new_selected_display, DisplayInfo display) {
-    if (new_selected_display != -1) {
-      selected_display = new_selected_display;
-      return;
-    }
     displays.at(selected_display) = display;
     refresh_gui();
   });
