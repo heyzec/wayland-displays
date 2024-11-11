@@ -80,8 +80,8 @@ std::map<string, string> assign_displays(const vector<DisplayInfo> displays,
  */
 std::optional<std::pair<Profile, std::map<string, string>>>
 find_matching_profile(const vector<Profile> profiles, const vector<DisplayInfo> displays) {
-  vector<string> patterns;
   for (Profile profile : profiles) {
+    vector<string> patterns;
     for (const auto &pair : profile.displays) {
       string pattern = pair.first;
       patterns.push_back(pattern);
