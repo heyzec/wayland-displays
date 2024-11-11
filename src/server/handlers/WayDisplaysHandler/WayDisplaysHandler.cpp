@@ -85,7 +85,10 @@ static vector<DisplaySettable> set_mode_for_displays(vector<DisplayInfo> heads,
   return settings;
 }
 
-/* Arrange and align displays. */
+/**
+ * Arrange and align displays.
+ * Displays with coordinates set possibly taken out of the flow
+ */
 static vector<DisplaySettable> arrange_displays(vector<DisplaySettable> displays, Arrange arrange,
                                                 Align align) {
   // Follow CSS terminology for main and cross axis
@@ -102,6 +105,19 @@ static vector<DisplaySettable> arrange_displays(vector<DisplaySettable> displays
   for (auto &display : displays) {
     bool is_main_x = (arrange == ROW) ^ (display.transform.value() % 2 == 1);
     // 1. Assign coordinate on main axis
+    // If main axis set, skip it
+    if (is_main_x) {
+      if (display.pos_x.has_value()) {
+        display.pos_y = 0;
+        continue;
+      }
+    } else {
+      if (display.pos_y.has_value()) {
+        display.pos_x = 0;
+        continue;
+      }
+    }
+    // Otherwise, use calculated value, based on accumulation so far
     if (is_main_x) {
       display.pos_x = pos_main;
       pos_main += display.size_x.value();
@@ -111,6 +127,11 @@ static vector<DisplaySettable> arrange_displays(vector<DisplaySettable> displays
     }
 
     // 2. Assign coordinate on cross axis
+    // If cross axis set (and main axis not set), use this overriding value instead
+    if (is_main_x && display.pos_y.has_value() || !is_main_x && display.pos_x.has_value()) {
+      continue;
+    }
+    // Otherwise, use calculated value, based on maximum
     int size_cross = (is_main_x ? display.size_y.value() : display.size_x.value());
     int pos_cross;
     if (align == TOP_OR_LEFT) {
