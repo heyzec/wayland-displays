@@ -15,7 +15,7 @@ struct IpcSwitchRequest : IpcBaseRequest {
 struct IpcSwitchResponse : IpcBaseResponse {
   bool success;
 
-  IpcSwitchResponse() : IpcBaseResponse("SET") {}
+  IpcSwitchResponse() : IpcBaseResponse("SWITCH") {}
   IpcSwitchResponse(bool success) : IpcSwitchResponse() {
     this->success = success;
   }
