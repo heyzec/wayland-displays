@@ -114,6 +114,14 @@ GtkWidget *get_window() {
   // Stop gtk_main when GUI closed
   g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
+  GList *children = gtk_container_get_children(GTK_CONTAINER(window));
+  for (GList *iter = children; iter != NULL; iter = iter->next) {
+    gtk_container_remove(GTK_CONTAINER(window), GTK_WIDGET(iter->data));
+  }
+  g_list_free(children);
+
+  // gtk_container_add(GTK_CONTAINER(window), header_bar);
+
   return window;
 }
 
@@ -139,6 +147,8 @@ void usr1_signal_handler(int signal) {
   refresh_gui();
 }
 
+GtkWidget *window;
+
 void setup_gui() {
   signal(SIGUSR1, usr1_signal_handler);
 
@@ -147,7 +157,7 @@ void setup_gui() {
   gtk_init(NULL, NULL); // NULL, NULL instead of argc, argv
 
   // Setup contents in window
-  GtkWidget *window = get_window();
+  window = get_window();
 
   // Update content values in window
   refresh_gui();
@@ -163,12 +173,29 @@ void setup_gui() {
     refresh_gui();
   });
 
-  gtk_widget_show_all(window); // Mark all widgets to be displayed
+  // gtk_widget_show_all(window); // Mark all widgets to be displayed
 }
 
 void run_gui() {
   setup_gui();
   wlr_screencopy_init();
+
+  printf("Bytes: %.*s\n", 100, (char *)pixels);
+  GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data((guchar *)pixels, GDK_COLORSPACE_RGB,
+                                               TRUE, // has_alpha (RGBA)
+                                               8,    // bits per sample
+                                               global_width, global_height, global_stride, NULL,
+                                               NULL // no destroy notification
+  );
+  if (!pixbuf) {
+    fprintf(stderr, "Failed to create pixbuf\n");
+    // Handle error, maybe exit or fallback
+  }
+
+  GtkWidget *image = gtk_image_new_from_pixbuf(pixbuf);
+  gtk_container_add(GTK_CONTAINER(window), image);
+  gtk_widget_show_all(window); // Mark all widgets to be displayed
+
   gtk_main();
   // g_object_unref(builder);
 }
