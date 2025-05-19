@@ -9,13 +9,9 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <fcntl.h>
-#include <sys/mman.h>
 
 zwlr_screencopy_manager_v1 *manager;
-wl_display *display;
 wl_output *output;
-wl_shm *shm;
 
 static void geometry(void *data, struct wl_output *output, int x, int y, int physical_width,
                      int physical_height, int subpixel, const char *make, const char *model,
@@ -57,25 +53,6 @@ static void global(void *data, struct wl_registry *registry, uint32_t name, cons
                    uint32_t version) {
   /*printf("interface: '%s', version: %d, name: %d\n", interface, version, name);*/
   if (strcmp(interface, wl_output_interface.name) == 0) {
-    shm = (wl_shm *)wl_registry_bind(registry, name, &wl_shm_interface, version);
-    int fd = shm_open("/tmp/sock", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-    int size = 100;
-    wl_shm_create_pool(shm, fd, size);
-
-    wl_shm_pool *pool = wl_shm_create_pool(shm, fd, size);
-    /*frame->buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, format);*/
-    /**/
-    /*zwlr_screencopy_frame_v1 *frame =*/
-    /*    zwlr_screencopy_manager_v1_capture_output(manager, 1, output);*/
-    /**/
-    /**/
-    /*zwlr_screencopy_frame_v1_copy(copy_frame, frame->buffer);*/
-    /*frame->stride = stride;*/
-    /*frame->width = width;*/
-    /*frame->height = height;*/
-    /*frame->swap_rgb = format == WL_SHM_FORMAT_ABGR8888 || format == WL_SHM_FORMAT_XBGR8888;*/
-  }
-  if (strcmp(interface, wl_output_interface.name) == 0) {
     output = (wl_output *)wl_registry_bind(registry, name, &wl_output_interface, version);
     wl_output_add_listener(output, &output_listener, NULL);
     printf("Set output\n");
@@ -87,7 +64,6 @@ static void global(void *data, struct wl_registry *registry, uint32_t name, cons
     manager = (zwlr_screencopy_manager_v1 *)wl_registry_bind(
         registry, name, &zwlr_screencopy_manager_v1_interface, version);
     printf("Set maanger\n");
-    /*zwlr_screencopy_frame_v1*/
     /*state->manager = manager;*/
     /*zwlr_output_manager_v1_add_listener(manager, &manager_listener, state);*/
   }
@@ -142,44 +118,41 @@ static void buffer_done(void *data, struct zwlr_screencopy_frame_v1 *frame) {
 }
 
 static const struct zwlr_screencopy_frame_v1_listener frame_listener = {
-    .buffer = buffer, .flags = flags, .ready = ready, .failed = failed,
-    /*.damage = damage,*/
-    /*.linux_dmabuf = linux_dmabuf,*/
-    /*.buffer_done = buffer_done,*/
+    .buffer = buffer,
+    .flags = flags,
+    .ready = ready,
+    .failed = failed,
+    .damage = damage,
+    .linux_dmabuf = linux_dmabuf,
+    .buffer_done = buffer_done,
 };
 
 void wlr_screencopy_init() {
   // state = new WlrState{};
   // Connect to compositor and get the Wayland display singleton
-  display = wl_display_connect(NULL);
+  wl_display *display = wl_display_connect(NULL);
   if (!display) {
     fprintf(stderr, "Failed to connect to Wayland display.\n");
     exit(1);
   }
+  display = display;
 
   // Get the global registry singleton
   struct wl_registry *registry = wl_display_get_registry(display);
   // Bind a listener to the registry
   wl_registry_add_listener(registry, &registry_listener, NULL);
 
+  printf("WHOOOOOOOOOOOOOOOO");
+
   // Registry listener will bind the zwlr manager if it is supported
   // TODO: Quit app if compositor does not support the protocol
 
   // Block until all pending requests/events are sent/received and all listeners executed:
   // - Handle global events (globals available on this compositor)
-  /*wl_display_roundtrip(display);*/
-  /*wl_display_roundtrip(display);*/
-  /*wl_display_roundtrip(display);*/
-  wl_display_dispatch(display);
+  wl_display_roundtrip(display);
 
-  printf("Getting a frame\n");
   zwlr_screencopy_frame_v1 *frame = zwlr_screencopy_manager_v1_capture_output(manager, 0, output);
   zwlr_screencopy_frame_v1_add_listener(frame, &frame_listener, NULL);
 
-  while (true) {
-    wl_display_dispatch(display);
-  }
-
-  /*wl_display_roundtrip(display);*/
-  /*wl_display_roundtrip(display);*/
+  wl_display_roundtrip(display);
 }
