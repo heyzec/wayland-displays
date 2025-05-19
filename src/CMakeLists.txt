@@ -1,5 +1,6 @@
 set(SOURCES
     gui/canvas.cpp
+    gui/copy.cpp
     gui/details.cpp
     outputs/outputs.cpp
     outputs/head.cpp

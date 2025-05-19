@@ -69,10 +69,54 @@ static const struct zwlr_output_manager_v1_listener manager_listener = {
 // ============================================================
 // Handlers and listeners for wl_registry
 // ============================================================
+static void geometry(void *data, struct wl_output *output, int x, int y, int physical_width,
+                     int physical_height, int subpixel, const char *make, const char *model,
+                     int transform) {
+  /*printf("I got name %s\n");*/
+}
+
+static void mode(void *data, struct wl_output *output, uint flags, int width, int height,
+                 int refresh) {
+  /*printf("I got name %s\n", name);*/
+}
+
+static void done(void *data, struct wl_output *output) {
+  printf("==DONE==");
+}
+
+static void scale(void *data, struct wl_output *output, int scale) {
+  printf("==DONE==");
+}
+
+static void name(void *data, struct wl_output *output, const char *name) {
+  printf("I got name %s\n", name);
+}
+
+static void description(void *data, struct wl_output *output, const char *description) {
+  printf("I got name %s\n", description);
+}
+
+static const struct wl_output_listener output_listener = {
+    .geometry = geometry,
+    .mode = mode,
+    .done = done,
+    .scale = scale,
+    .name = name,
+    .description = description,
+};
 
 // https://wayland.app/protocols/wayland#wl_registry:event:global
 static void global(void *data, struct wl_registry *registry, uint32_t name, const char *interface,
                    uint32_t version) {
+  if (strcmp(interface, wl_output_interface.name) == 0) {
+    struct wl_output *output =
+        (wl_output *)wl_registry_bind(registry, name, &wl_output_interface, version);
+    wl_output_add_listener(output, &output_listener, NULL);
+    printf("Binding\n");
+
+    /*state->manager = manager;*/
+    /*zwlr_output_manager_v1_add_listener(manager, &manager_listener, state);*/
+  }
   if (strcmp(interface, zwlr_output_manager_v1_interface.name) == 0) {
     // printf("interface: '%s', version: %d, name: %d\n", interface, version, name);
     struct zwlr_output_manager_v1 *manager = (zwlr_output_manager_v1 *)wl_registry_bind(

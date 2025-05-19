@@ -2,6 +2,7 @@
 
 #include "common/ipc/get.hpp"
 #include "gui/canvas.hpp"
+#include "gui/copy.hpp"
 #include "gui/details.hpp"
 
 #include "common/ipc.hpp"
@@ -167,6 +168,7 @@ void setup_gui() {
 
 void run_gui() {
   setup_gui();
+  wlr_screencopy_init();
   gtk_main();
   // g_object_unref(builder);
 }

@@ -74,6 +74,9 @@ set(PROTO_OUT ${CMAKE_BINARY_DIR}/protocols)
 # Find wayland-scanner binary
 pkg_get_variable(WaylandScanner wayland-scanner wayland_scanner)
 
+set(GENERATED_SOURCES "")
+set(GENERATED_HEADERS "")
+
 function(add_protocol protoName)
     file(MAKE_DIRECTORY ${PROTO_OUT})
     set(PROTOCOL_H ${PROTO_OUT}/${protoName}.h)
@@ -91,13 +94,21 @@ function(add_protocol protoName)
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
 
-    target_sources(generate-protocol PRIVATE ${PROTOCOL_H})
+    list(APPEND GENERATED_HEADERS ${PROTOCOL_H})
+    list(APPEND GENERATED_SOURCES ${PROTOCOL_C})
 
-    add_library(generate-protocol-sources STATIC ${PROTOCOL_C})
+    set(GENERATED_HEADERS "${GENERATED_HEADERS}" PARENT_SCOPE)
+    set(GENERATED_SOURCES "${GENERATED_SOURCES}" PARENT_SCOPE)
 endfunction()
 
 # Add all needed protocols here
+# TODO: glob and foreach
 add_protocol("wlr-output-management-unstable-v1")
+add_protocol("wlr-screencopy-unstable-v1")
+message("${GENERATED_HEADERS}")
+
+target_sources(generate-protocol PRIVATE ${GENERATED_HEADERS})
+add_library(generate-protocol-sources STATIC ${GENERATED_SOURCES})
 
 # Include the generated protocol headers
 include_directories(${PROTO_OUT})
