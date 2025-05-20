@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.26)
 # The compiler and linker is usually determined by the file extension if not set otherwise
 project(wayland-displays VERSION 1.0 LANGUAGES C CXX)
 
+message("CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
 # Get ${SOURCES}
@@ -41,25 +42,42 @@ endif()
 # Both Cairo and GTK3 require their own FindXXX.cmake as they are not present in
 # https://gitlab.kitware.com/cmake/cmake/tree/master/Modules
 
+message("CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+message("CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
+
 find_package(Cairo REQUIRED)
 include_directories(${CAIRO_INCLUDE_DIRS})
-target_link_libraries(wayland-displays PUBLIC ${CAIRO_LIBRARIES})
+target_link_libraries(wayland-displays PRIVATE ${CAIRO_LIBRARIES})
 
 find_package(GTK3 REQUIRED)
 include_directories(${GTK3_INCLUDE_DIRS})
-target_link_libraries(wayland-displays PUBLIC ${GTK3_LIBRARIES})
+target_link_libraries(wayland-displays PRIVATE ${GTK3_LIBRARIES})
 
 find_package(Wayland REQUIRED)
 include_directories(${WAYLAND_INCLUDE_DIRS})
-target_link_libraries(wayland-displays PUBLIC ${WAYLAND_LIBRARIES})
+target_link_libraries(wayland-displays PRIVATE ${WAYLAND_LIBRARIES})
 
 pkg_check_modules(YAML_CPP REQUIRED yaml-cpp)
 include_directories(${YAML_CPP_INCLUDE_DIRS})
-target_link_libraries(wayland-displays PUBLIC ${YAML_CPP_LIBRARIES})
+target_link_libraries(wayland-displays PRIVATE ${YAML_CPP_LIBRARIES})
 
 find_package(spdlog REQUIRED)
 target_link_libraries(wayland-displays PRIVATE spdlog::spdlog)
 add_compile_definitions(SPDLOG_FMT_EXTERNAL)
+
+find_package(OpenGL REQUIRED)
+# find_package(GLFW3 REQUIRED)
+message("OPENGL_FOUND: ${OPENGL_FOUND}")
+message("OpenGL_GLX_FOUND: ${OpenGL_GLX_FOUND}")
+message("OpenGL_EGL_FOUND: ${OpenGL_EGL_FOUND}")
+target_link_libraries(wayland-displays PRIVATE OpenGL::OpenGL)
+
+find_package(EGL REQUIRED)
+target_link_libraries(wayland-displays PRIVATE ${EGL_LIBRARY})
+
+find_package(LibEpoxy REQUIRED)
+include_directories(${LibEpoxy_INCLUDE_DIRS})
+target_link_libraries(wayland-displays PRIVATE ${LibEpoxy_LIBRARY})
 
 ########################################
 # Generated protocols
