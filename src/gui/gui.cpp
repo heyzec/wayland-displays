@@ -17,7 +17,6 @@
 
 #include <epoxy/gl.h>
 #include <gtk/gtk.h>
-#include <math.h>
 
 unsigned int WIDTH = 800;
 unsigned int HEIGHT = 600;
@@ -60,10 +59,14 @@ static GLuint create_shader(int type) {
 }
 
 static void realize(GtkWidget *widget) {
+  printf("Realize\n");
   GdkGLContext *context;
   gtk_gl_area_make_current(GTK_GL_AREA(widget));
-  if (gtk_gl_area_get_error(GTK_GL_AREA(widget)) != NULL)
+  GError *err = gtk_gl_area_get_error(GTK_GL_AREA(widget));
+  if (err != NULL) {
+    g_printerr("Error: %s\n", err->message);
     return;
+  }
   context = gtk_gl_area_get_context(GTK_GL_AREA(widget));
 
   glGenVertexArrays(1, &vao);
@@ -87,6 +90,7 @@ static void realize(GtkWidget *widget) {
 }
 
 static gboolean render(GtkGLArea *area, GdkGLContext *context) {
+  printf("Render\n");
   if (gtk_gl_area_get_error(area) != NULL)
     return FALSE;
 
@@ -285,9 +289,18 @@ void run_gui() {
   // g_signal_connect(area, "render", G_CALLBACK(render), NULL);
   //
   gl_area = gtk_gl_area_new();
-  g_signal_connect(gl_area, "realize", G_CALLBACK(realize), NULL);
+  gtk_gl_area_set_use_es(GTK_GL_AREA(gl_area), true);
+
+  // g_signal_connect(gl_area, "realize", G_CALLBACK(realize), NULL);
   g_signal_connect(gl_area, "render", G_CALLBACK(render), NULL);
   // g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(gtk_main_quit), NULL);
+  //
+  // gtk_widget_realize(gl_area);
+  // GdkGLContext *context;
+  // gtk_gl_area_set_use_es(GTK_GL_AREA(gl_area), TRUE);
+  // context = gtk_gl_area_get_context(GTK_GL_AREA(gl_area));
+  // gdk_gl_context_set_use_es(context, TRUE);
+  // gdk_gl_context_set_debug_enabled(context, TRUE);
 
   gtk_container_add(GTK_CONTAINER(window), gl_area);
   gtk_widget_show_all(window); // Mark all widgets to be displayed

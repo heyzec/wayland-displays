@@ -75,6 +75,10 @@ target_link_libraries(wayland-displays PRIVATE OpenGL::OpenGL)
 find_package(EGL REQUIRED)
 target_link_libraries(wayland-displays PRIVATE ${EGL_LIBRARY})
 
+find_package(X11 REQUIRED)
+include_directories(${X11_INCLUDE_DIR})
+target_link_libraries(wayland-displays PRIVATE ${X11_LIBRARIES})
+
 find_package(LibEpoxy REQUIRED)
 include_directories(${LibEpoxy_INCLUDE_DIRS})
 target_link_libraries(wayland-displays PRIVATE ${LibEpoxy_LIBRARY})

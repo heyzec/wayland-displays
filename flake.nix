@@ -37,7 +37,12 @@
                 # C++ Compiler is already part of stdenv
                 cmake
                 pkg-config
-                gtk3
+                (gtk3.overrideAttrs (old: {
+                  mesonFlags = old.mesonFlags ++ [
+                    "--buildtype=debug"
+                  ];
+                  env.NIX_CFLAGS_COMPILE = "";
+                }))
                 cairo
                 wayland
                 wayland-scanner
@@ -45,6 +50,7 @@
                 catch2_3
                 spdlog
                 libepoxy
+                wrapGAppsHook3
               ];
 
               buildInputs = [ ];
