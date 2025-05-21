@@ -1,50 +1,32 @@
 {
   lib,
-  stdenv,
-  fetchFromGitHub,
-  meson,
-  ninja,
-  pkg-config,
-  gtk3,
-  libepoxy,
-  wayland,
-  wayland-scanner,
-  wrapGAppsHook3,
+  pkgs,
 }:
-stdenv.mkDerivation (finalAttrs: {
-  pname = "wayland-displays";
-  version = "1.1.1";
+pkgs.stdenv.mkDerivation (finalAttrs: {
+  name = "wayland-displays";
 
-  nativeBuildInputs = [
+  # Filtered list of source files
+  src = lib.sourceByRegex ./. [
+    "meson.build"
+    "^src.*"
+    "^lib.*"
+    "^protocols.*"
+    "^resources.*"
+    "^tests/unit.*"
+  ];
+
+  nativeBuildInputs = with pkgs; [
     meson
     ninja
     pkg-config
-    wrapGAppsHook3
     wayland-scanner
-    libepoxy
   ];
 
-  buildInputs = [
+  buildInputs = with pkgs; [
     gtk3
     libepoxy
     wayland
+    spdlog
+    yaml-cpp
   ];
-
-  src = ./.;
-  # src = fetchFromGitHub {
-  #   owner = "artizirk";
-  #   repo = "wdisplays";
-  #   rev = finalAttrs.version;
-
-  #   sha256 = "sha256-dtvP930ChiDRT60xq6xBDU6k+zHnkrAkxkKz2FxlzRs=";
-  # };
-
-  meta = with lib; {
-    description = "Graphical application for configuring displays in Wayland compositors";
-    homepage = "https://github.com/luispabon/wdisplays";
-    maintainers = with maintainers; [ma27];
-    license = licenses.gpl3Plus;
-    platforms = platforms.linux;
-    mainProgram = "wdisplays";
-  };
 })
