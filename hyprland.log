@@ -5848,3 +5848,50 @@ Setting for eDP-1 has enabled value
 [debug] Handling request: GET
 [debug] Handling request: GET
 [debug] Handling request: GET
+Enabled 0 Position (0,1200) Size NULLxNULL Scale NULL Rate NULL Transform NULL
+Enabled NULL Position (NULL,NULL) Size NULLxNULL Scale NULL Rate NULL Transform 1
+Enabled NULL Position (NULL,NULL) Size NULLxNULL Scale NULL Rate NULL Transform 0
+assignments[eDP-1] = !^Sharp .+ \(eDP-\d\)
+assignments[eDP-1] = !^eDP-\d
+[info] Matched profile: standalone
+Generating changes..., 1
+Let's look at a head
+Enabled: eDP-1
+Setting for eDP-1 has enabled value
+[debug] Applying new configuration changes to 1 displays...
+[debug] Enabling eDP-1: Position (0, 0) Size 1920x1200 Scale 1 Rate 59950 Transform 0
+[debug] Event: Succeeded
+assignments[DP-5] = !^Samsung .+ LS27
+assignments[eDP-1] = !^Sharp .+ \(eDP-\d\)
+assignments[eDP-1] = !^eDP-\d
+[info] Matched profile: standalone
+Generating changes..., 2
+Let's look at a head
+Enabled: eDP-1
+Let's look at a head
+Enabled: DP-5
+Setting for DP-5 has enabled value
+Setting for eDP-1 has enabled value
+[debug] Applying new configuration changes to 2 displays...
+[debug] Enabling DP-5: Position (0, 0) Size 2560x1440 Scale 1 Rate 99946 Transform 0
+[debug] Enabling eDP-1: Position (2560, 240) Size 1920x1200 Scale 1 Rate 59950 Transform 0
+[debug] Event: Succeeded
+assignments[DP-5] = !^Samsung .+ LS27
+assignments[DP-6] = !^Samsung .+ LS24
+assignments[eDP-1] = !^Sharp .+ \(eDP-\d\)
+[info] Matched profile: home
+Generating changes..., 3
+Let's look at a head
+Disabled: eDP-1
+Let's look at a head
+Enabled: DP-5
+Let's look at a head
+Enabled: DP-6
+Setting for DP-5 has enabled value
+Setting for DP-6 has enabled value
+Setting for eDP-1 has enabled value
+[debug] Applying new configuration changes to 3 displays...
+[debug] Enabling DP-6: Position (0, 0) Size 1920x1080 Scale 1 Rate 100000 Transform 1
+[debug] Enabling DP-5: Position (1080, 240) Size 2560x1440 Scale 1 Rate 99946 Transform 0
+[debug] Disabling eDP-1
+[debug] Event: Succeeded
