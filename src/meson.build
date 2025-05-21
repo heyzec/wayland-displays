@@ -1,0 +1,15 @@
+src_files = [
+  'src/main.cpp',
+  'src/gui/canvas.cpp',
+  'src/gui/details.cpp',
+  'src/outputs/outputs.cpp',
+  'src/outputs/head.cpp',
+  'src/outputs/config.cpp',
+  'src/outputs/mode.cpp',
+  'src/common/ipc.cpp',
+  'src/common/logger.cpp',
+  'src/common/paths.cpp',
+  'src/common/shapes.cpp',
+  'src/common/socket.cpp',
+  'src/server/handlers/WayDisplaysHandler/utils.cpp',
+]

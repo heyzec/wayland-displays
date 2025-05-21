@@ -5,7 +5,7 @@
 .cache/
 
 # Build artifacts
-build/
+# build/ # No longer required when using Meson
 
 # Test artifacts
 result
@@ -13,4 +13,3 @@ result
 
 # Autosaved files
 *.ui~
-
