@@ -27,24 +27,34 @@ unsigned int HEIGHT = 600;
 const GLchar *VERTEX_SOURCE = "#version 330 core\n"
                               "layout (location = 0) in vec3 aPosition;\n"
                               "layout (location = 1) in vec3 aColor;\n"
+                              "layout (location = 2) in vec2 aTexCoord;\n"
+
                               "out vec3 ourColor;\n"
+                              "out vec2 TexCoord;\n"
+
                               "void main()\n"
                               "{\n"
                               "   gl_Position = vec4(aPosition, 1.0);\n"
                               "   ourColor = aColor;\n"
                               // "   vertexColor = vec4(0.5, 0.0, 0.0, 1.0);\n"
+                              "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
                               "}\n";
 
 const GLchar *FRAGMENT_SOURCE = "#version 330 core\n"
-                                // "precision mediump float;\n"
                                 "out vec4 FragColor;\n"
+
                                 "in vec3 ourColor;\n"
-                                // "uniform vec4 ourColor;\n"
+                                "in vec2 TexCoord;\n"
+
+                                // texture sampler
+                                "uniform sampler2D texture1;\n"
+
                                 "void main()\n"
                                 "{\n"
                                 // "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
                                 // "   FragColor = vertexColor;\n"
-                                "   FragColor = vec4(ourColor, 1.0f);\n"
+                                // "   FragColor = vec4(ourColor, 1.0f);\n"
+                                "   FragColor = texture(texture1, TexCoord);\n"
                                 "}\n";
 
 static GtkWidget *gl_area = NULL;
@@ -53,6 +63,7 @@ static GLuint vao;
 static GLuint vertex, fragment;
 static GLuint program;
 unsigned int EBO;
+unsigned int texture;
 
 static const GLfloat vertex_data[] = {0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f};
 
@@ -63,16 +74,17 @@ static const GLfloat vertex_data[] = {0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f
 //     -0.5f, 0.5f,  0.0f  // top left
 // };
 float vertices[] = {
-    // positions         // colors
-    0.5f,  -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom right
-    -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // bottom left
-    0.0f,  0.5f,  0.0f, 0.0f, 0.0f, 1.0f  // top
+    // positions          // colors           // texture coords
+    0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top right
+    0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom right
+    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
+    -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // top left
 };
-// unsigned int indices[] = {
-//     // note that we start from 0!
-//     0, 1, 3, // first triangle
-//     1, 2, 3  // second triangle
-// };
+unsigned int indices[] = {
+    // note that we start from 0!
+    0, 1, 3, // first triangle
+    1, 2, 3  // second triangle
+};
 
 static GLuint create_shader(int type) {
   GLuint shader;
@@ -112,7 +124,7 @@ static void realize(GtkWidget *widget) {
 
   glGenVertexArrays(1, &vao);
   glGenBuffers(1, &vbo);
-  // glGenBuffers(1, &EBO);
+  glGenBuffers(1, &EBO);
 
   // 1. bind Vertex Array Object
   glBindVertexArray(vao);
@@ -121,20 +133,28 @@ static void realize(GtkWidget *widget) {
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
   // // 3. copy our index array in a element buffer for OpenGL to use
-  // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-  // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
   // 4. then set the vertex attributes pointers
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
+  glEnableVertexAttribArray(2);
 
   // TEXTURES
-  unsigned int texture;
   glGenTextures(1, &texture);
-  glBindTexture(
-      GL_TEXTURE_2D,
-      texture); // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+  // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+  glBindTexture(GL_TEXTURE_2D, texture);
+
+  // set the texture wrapping parameters
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                  GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  // set texture filtering parameters
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   int width, height, nrChannels;
   unsigned char *data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
@@ -177,11 +197,13 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+  // bind Texture
+  glBindTexture(GL_TEXTURE_2D, texture);
   // render the triangle
   glBindVertexArray(vao);
-  glDrawArrays(GL_TRIANGLES, 0, 3);
-  // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-  glBindVertexArray(0);
+  // glDrawArrays(GL_TRIANGLES, 0, 3);
+  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+  // glBindVertexArray(0);
 
   gint64 usec = g_get_monotonic_time();
   double time_in_seconds = usec / 1000000.0;
