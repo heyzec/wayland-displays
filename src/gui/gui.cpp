@@ -291,7 +291,7 @@ void run_gui() {
   gl_area = gtk_gl_area_new();
   gtk_gl_area_set_use_es(GTK_GL_AREA(gl_area), true);
 
-  // g_signal_connect(gl_area, "realize", G_CALLBACK(realize), NULL);
+  g_signal_connect(gl_area, "realize", G_CALLBACK(realize), NULL);
   g_signal_connect(gl_area, "render", G_CALLBACK(render), NULL);
   // g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(gtk_main_quit), NULL);
   //
