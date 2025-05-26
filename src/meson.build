@@ -12,4 +12,5 @@ src_files = [
   'src/common/shapes.cpp',
   'src/common/socket.cpp',
   'src/server/handlers/WayDisplaysHandler/utils.cpp',
+  'src/gui/copy.cpp',
 ]
