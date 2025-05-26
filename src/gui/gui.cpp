@@ -40,22 +40,24 @@ const GLchar *VERTEX_SOURCE = "#version 330 core\n"
                               "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
                               "}\n";
 
-const GLchar *FRAGMENT_SOURCE = "#version 330 core\n"
-                                "out vec4 FragColor;\n"
+const GLchar *FRAGMENT_SOURCE =
+    "#version 330 core\n"
+    "out vec4 FragColor;\n"
 
-                                "in vec3 ourColor;\n"
-                                "in vec2 TexCoord;\n"
+    "in vec3 ourColor;\n"
+    "in vec2 TexCoord;\n"
 
-                                // texture sampler
-                                "uniform sampler2D texture1;\n"
+    // texture sampler
+    "uniform sampler2D texture1;\n"
+    "uniform sampler2D texture2;\n"
 
-                                "void main()\n"
-                                "{\n"
-                                // "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-                                // "   FragColor = vertexColor;\n"
-                                // "   FragColor = vec4(ourColor, 1.0f);\n"
-                                "   FragColor = texture(texture1, TexCoord);\n"
-                                "}\n";
+    "void main()\n"
+    "{\n"
+    // "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+    // "   FragColor = vertexColor;\n"
+    // "   FragColor = vec4(ourColor, 1.0f);\n"
+    "   FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.2);\n"
+    "}\n";
 
 static GtkWidget *gl_area = NULL;
 static GLuint vbo;
@@ -63,7 +65,7 @@ static GLuint vao;
 static GLuint vertex, fragment;
 static GLuint program;
 unsigned int EBO;
-unsigned int texture;
+unsigned int texture1, texture2;
 
 static const GLfloat vertex_data[] = {0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f};
 
@@ -144,19 +146,11 @@ static void realize(GtkWidget *widget) {
   glEnableVertexAttribArray(2);
 
   // TEXTURES
-  glGenTextures(1, &texture);
-  // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-  glBindTexture(GL_TEXTURE_2D, texture);
-
-  // set the texture wrapping parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                  GL_REPEAT); // set texture wrapping to GL_REPEAT (default wrapping method)
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  // set texture filtering parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
   int width, height, nrChannels;
+
+  glGenTextures(1, &texture1);
+  // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+  glBindTexture(GL_TEXTURE_2D, texture1);
   unsigned char *data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
   if (data) {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -166,9 +160,17 @@ static void realize(GtkWidget *widget) {
   }
   stbi_image_free(data);
 
-  // glGenBuffers(1, &EBO);
-  // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-  // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+  glGenTextures(1, &texture2);
+  // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+  glBindTexture(GL_TEXTURE_2D, texture2);
+  data = stbi_load("awesomeface.png", &width, &height, &nrChannels, 0);
+  if (data) {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+  } else {
+    std::cout << "Failed to load texture" << std::endl;
+  }
+  stbi_image_free(data);
 
   vertex = create_shader(GL_VERTEX_SHADER);
   fragment = create_shader(GL_FRAGMENT_SHADER);
@@ -185,6 +187,7 @@ static void realize(GtkWidget *widget) {
 
   glUseProgram(program);
   glUniform1i(glGetUniformLocation(program, "texture1"), 0);
+  glUniform1i(glGetUniformLocation(program, "texture2"), 1);
 }
 
 static gboolean render(GtkGLArea *area, GdkGLContext *context) {
@@ -200,10 +203,11 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  // glActiveTexture(GL_TEXTURE0);
-
   // bind Texture
-  glBindTexture(GL_TEXTURE_2D, texture);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, texture1);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, texture2);
   // render the triangle
   glBindVertexArray(vao);
   // glDrawArrays(GL_TRIANGLES, 0, 3);
