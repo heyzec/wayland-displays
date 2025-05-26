@@ -56,7 +56,8 @@ const GLchar *FRAGMENT_SOURCE =
     // "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
     // "   FragColor = vertexColor;\n"
     // "   FragColor = vec4(ourColor, 1.0f);\n"
-    "   FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.2);\n"
+    "   FragColor =  texture(texture2, TexCoord);\n"
+    // "   FragColor = mix(texture(texture1, TexCoord), texture(texture2, TexCoord), 0.2);\n"
     "}\n";
 
 static GtkWidget *gl_area = NULL;
@@ -67,20 +68,28 @@ static GLuint program;
 unsigned int EBO;
 unsigned int texture1, texture2;
 
-static const GLfloat vertex_data[] = {0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f};
-
 // float vertices[] = {
 //     0.5f,  0.5f,  0.0f, // top right
 //     0.5f,  -0.5f, 0.0f, // bottom right
 //     -0.5f, -0.5f, 0.0f, // bottom left
 //     -0.5f, 0.5f,  0.0f  // top left
 // };
+
+// float vertices[] = {
+//     // positions          // colors           // texture coords
+//     1.0f,  1.0f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top right
+//     1.0f,  -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom right
+//     -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
+//     -1.0f, 1.0f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // top left
+// };
+// Swapped some coordinates to flip the image. Find a better way to deal with this, research origin
+// of coord system between wayland output and OpenGL
 float vertices[] = {
     // positions          // colors           // texture coords
-    0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top right
-    0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom right
-    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
-    -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // top left
+    1.0f,  1.0f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // top right
+    1.0f,  -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, // bottom right
+    -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, // bottom left
+    -1.0f, 1.0f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f  // top left
 };
 unsigned int indices[] = {
     // note that we start from 0!
@@ -161,16 +170,20 @@ static void realize(GtkWidget *widget) {
   stbi_image_free(data);
 
   glGenTextures(1, &texture2);
-  // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
+  // // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
   glBindTexture(GL_TEXTURE_2D, texture2);
-  data = stbi_load("awesomeface.png", &width, &height, &nrChannels, 0);
-  if (data) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-  } else {
-    std::cout << "Failed to load texture" << std::endl;
-  }
-  stbi_image_free(data);
+  // data = stbi_load("awesomeface.png", &width, &height, &nrChannels, 0);
+  // if (data) {
+  //   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+  //   glGenerateMipmap(GL_TEXTURE_2D);
+  // } else {
+  //   std::cout << "Failed to load texture" << std::endl;
+  // }
+  // stbi_image_free(data);
+  // Upload pixel data: 2x2 image
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, global_width, global_height, 0, GL_BGRA, GL_UNSIGNED_BYTE,
+               pixels);
+  glGenerateMipmap(GL_TEXTURE_2D);
 
   vertex = create_shader(GL_VERTEX_SHADER);
   fragment = create_shader(GL_FRAGMENT_SHADER);
@@ -181,9 +194,6 @@ static void realize(GtkWidget *widget) {
   glLinkProgram(program);
   glDetachShader(program, vertex);
   glDetachShader(program, fragment);
-
-  // // Upload pixel data: 2x2 image
-  // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 
   glUseProgram(program);
   glUniform1i(glGetUniformLocation(program, "texture1"), 0);
@@ -400,6 +410,7 @@ void run_gui() {
   setup_gui();
   wlr_screencopy_init();
 
+  printf("BYTES\n");
   printf("Bytes: %.*s\n", 100, (char *)pixels);
 
   // GdkPixbuf *pixbuf = gdk_pixbuf_new_from_data((guchar *)pixels, GDK_COLORSPACE_RGB,
