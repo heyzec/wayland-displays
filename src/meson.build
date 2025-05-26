@@ -13,4 +13,5 @@ src_files = [
   'src/common/socket.cpp',
   'src/server/handlers/WayDisplaysHandler/utils.cpp',
   'src/gui/copy.cpp',
+  'src/common/magic.cpp',
 ]
