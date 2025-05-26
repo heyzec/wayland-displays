@@ -180,8 +180,11 @@ static void realize(GtkWidget *widget) {
   glDetachShader(program, vertex);
   glDetachShader(program, fragment);
 
-  // Upload pixel data: 2x2 image
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+  // // Upload pixel data: 2x2 image
+  // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+  glUseProgram(program);
+  glUniform1i(glGetUniformLocation(program, "texture1"), 0);
 }
 
 static gboolean render(GtkGLArea *area, GdkGLContext *context) {
@@ -196,6 +199,8 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   // render
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  // glActiveTexture(GL_TEXTURE0);
 
   // bind Texture
   glBindTexture(GL_TEXTURE_2D, texture);
