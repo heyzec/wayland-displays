@@ -9,6 +9,8 @@
 #include <vector>
 
 std::vector<struct Box> boxes;
+int gl_width;
+int gl_height;
 
 const GLchar *VERTEX_SOURCE = "#version 330 core\n"
                               "layout (location = 0) in vec3 aPosition;\n"
@@ -38,8 +40,8 @@ const GLchar *FRAGMENT_SOURCE =
 
     "void main()\n"
     "{\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    // "   FragColor =  mix(texture(texture2, TexCoord), vec4(1.0f, 1.0f, 1.0f, 1.0f), 0.7f);\n"
+    // "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+    "   FragColor =  mix(texture(texture2, TexCoord), vec4(1.0f, 1.0f, 1.0f, 1.0f), 0.0f);\n"
     "}\n";
 
 static GLuint vbo;
@@ -160,8 +162,19 @@ static void realize(GtkWidget *widget) {
   // }
   // stbi_image_free(data);
   // Upload pixel data: 2x2 image
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, global_width, global_height, 0, GL_BGRA, GL_UNSIGNED_BYTE,
-               pixels);
+  std::vector<CopyOutput *> copy_outputs = *get_pixels();
+  CopyOutput *selected;
+  for (CopyOutput *coutput : copy_outputs) {
+    if (strcmp(coutput->name, "DP-6") == 0) {
+      selected = coutput;
+      break;
+    }
+  }
+  uint w = selected->width;
+  uint h = selected->height;
+  printf("Selected output: %s, %d x %d\n", selected->name, w, h);
+  void *pixels = selected->pixels;
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
   glGenerateMipmap(GL_TEXTURE_2D);
 
   vertex = create_shader(GL_VERTEX_SHADER);
@@ -179,10 +192,25 @@ static void realize(GtkWidget *widget) {
   glUniform1i(glGetUniformLocation(program, "texture2"), 1);
 }
 
+int prev = 0;
+int count = 0;
+
 static gboolean render(GtkGLArea *area, GdkGLContext *context) {
-  printf("Render\n");
+  gint64 usec = g_get_monotonic_time();
+  int time_in_seconds = usec / 1000000.0;
+  count += 1;
+  if (prev != time_in_seconds) {
+    printf("FPS: %d\n", count);
+    count = 0;
+  }
+  prev = time_in_seconds;
+
   if (gtk_gl_area_get_error(area) != NULL)
     return FALSE;
+
+  // 2. copy our vertices array in a vertex buffer for OpenGL to use
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
   // as we only have a single shader, we could also just activate
   // our shader once beforehand if we want to
@@ -203,8 +231,6 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
   // glBindVertexArray(0);
 
-  gint64 usec = g_get_monotonic_time();
-  double time_in_seconds = usec / 1000000.0;
   float greenValue = (sin(time_in_seconds) / 2.0f) + 0.5f;
   int vertexColorLocation = glGetUniformLocation(program, "ourColor");
   glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
@@ -216,12 +242,41 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
 }
 
 static void on_size_allocate(GtkWidget *widget, GdkRectangle *allocation, gpointer user_data) {
-  printf("New size: %d x %d\n", allocation->width, allocation->height);
+  // printf("New size: %d x %d\n", allocation->width, allocation->height);
+  gl_width = allocation->width;
+  gl_height = allocation->height;
 }
 
-void update_glarea(std::vector<Box> new_boxes) {
+void update_glarea(std::vector<Box> new_boxes, std::vector<std::string> names) {
   printf("update gl alled\n");
   boxes = new_boxes;
+
+  float FAC = 0.15;
+  for (int i = 0; i < 2; i++) {
+    Box box = boxes.at(i);
+    if (i != 1) {
+      continue;
+    }
+    float x1 = box.x * FAC / gl_width * 2 - 1;
+    float x2 = x1 + box.width * FAC / gl_width * 2;
+    float y1 = -(box.y * FAC / gl_height * 2 - 1);
+    float y2 = y1 - box.height * FAC / gl_height * 2;
+    vertices[0] = x2;
+    vertices[1] = y1;
+
+    vertices[8] = x2;
+    vertices[9] = y2;
+
+    vertices[16] = x1;
+    vertices[17] = y2;
+
+    vertices[24] = x1;
+    vertices[25] = y1;
+    printf("(x1, y1) = (%f, %f)\n", x1, y1);
+    printf("(x2, y1) = (%f, %f)\n", x2, y1);
+    printf("(x1, y2) = (%f, %f)\n", x1, y2);
+    printf("(x2, y2) = (%f, %f)\n", x2, y2);
+  }
 }
 
 void setup_glarea(GtkWidget *gl_area) {

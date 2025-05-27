@@ -83,7 +83,12 @@ void refresh_canvas() {
   // TODO: Improve code org: it is not clear that canvas_state and redraw_canvas is related
   vector<Box> boxes = create_boxes_from_displays(displays);
   refresh_canvas(boxes);
-  update_glarea(boxes);
+  // This function shouldn't be here ideally, move it elsewhere
+  vector<string> names;
+  for (auto display : displays) {
+    names.push_back(display.name);
+  }
+  update_glarea(boxes, names);
 }
 
 // ============================================================
@@ -178,9 +183,6 @@ void setup_gui() {
 void run_gui() {
   setup_gui();
   wlr_screencopy_init();
-
-  printf("BYTES\n");
-  printf("Bytes: %.*s\n", 100, (char *)pixels);
 
   gtk_widget_show_all(window); // Mark all widgets to be displayed
 
