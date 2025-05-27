@@ -332,25 +332,31 @@ GtkWidget *get_window() {
   // Get the main window object
   GtkWidget *window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
 
-  // Get and setup drawing canvas (don't draw boxes yet)
-  GtkDrawingArea *drawing_area = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "drawing_area"));
-  setup_canvas(drawing_area, std::vector<Box>());
+  // // Get and setup drawing canvas (don't draw boxes yet)
+  // GtkDrawingArea *drawing_area = GTK_DRAWING_AREA(gtk_builder_get_object(builder,
+  // "drawing_area")); setup_canvas(drawing_area, std::vector<Box>());
+  //
+  // setup_details(builder);
+  //
+  // // Add header bar
+  // GtkWidget *header_bar = GTK_WIDGET(gtk_builder_get_object(builder, "header"));
+  // gtk_window_set_titlebar(GTK_WINDOW(window), header_bar);
+  // // Stop gtk_main when GUI closed
+  // g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
-  setup_details(builder);
-
-  // Add header bar
-  GtkWidget *header_bar = GTK_WIDGET(gtk_builder_get_object(builder, "header"));
-  gtk_window_set_titlebar(GTK_WINDOW(window), header_bar);
-  // Stop gtk_main when GUI closed
-  g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
-
-  GList *children = gtk_container_get_children(GTK_CONTAINER(window));
-  for (GList *iter = children; iter != NULL; iter = iter->next) {
-    gtk_container_remove(GTK_CONTAINER(window), GTK_WIDGET(iter->data));
-  }
-  g_list_free(children);
+  // GList *children = gtk_container_get_children(GTK_CONTAINER(window));
+  // for (GList *iter = children; iter != NULL; iter = iter->next) {
+  //   gtk_container_remove(GTK_CONTAINER(window), GTK_WIDGET(iter->data));
+  // }
+  // g_list_free(children);
 
   // gtk_container_add(GTK_CONTAINER(window), header_bar);
+
+  // gl_area = gtk_gl_area_new();
+  gl_area = GTK_WIDGET(gtk_builder_get_object(builder, "gl_area"));
+  g_signal_connect(gl_area, "realize", G_CALLBACK(realize), NULL);
+  g_signal_connect(gl_area, "render", G_CALLBACK(render), NULL);
+  gtk_container_add(GTK_CONTAINER(window), gl_area);
 
   return window;
 }
@@ -382,28 +388,26 @@ GtkWidget *window;
 void setup_gui() {
   signal(SIGUSR1, usr1_signal_handler);
 
-  update_displays_from_server();
+  // update_displays_from_server();
 
   gtk_init(NULL, NULL); // NULL, NULL instead of argc, argv
 
   // Setup contents in window
   window = get_window();
 
-  // Update content values in window
-  refresh_gui();
-
-  attach_canvas_updated_callback([](int selected_box, const vector<Box> boxes) {
-    update_displays_from_boxes(&displays, boxes);
-    selected_display = selected_box;
-    refresh_gui();
-  });
-
-  attach_details_updated_callback([](int new_selected_display, DisplayInfo display) {
-    displays.at(selected_display) = display;
-    refresh_gui();
-  });
-
-  // gtk_widget_show_all(window); // Mark all widgets to be displayed
+  // // Update content values in window
+  // refresh_gui();
+  //
+  // attach_canvas_updated_callback([](int selected_box, const vector<Box> boxes) {
+  //   update_displays_from_boxes(&displays, boxes);
+  //   selected_display = selected_box;
+  //   refresh_gui();
+  // });
+  //
+  // attach_details_updated_callback([](int new_selected_display, DisplayInfo display) {
+  //   displays.at(selected_display) = display;
+  //   refresh_gui();
+  // });
 }
 
 void run_gui() {
@@ -428,11 +432,6 @@ void run_gui() {
   // GtkWidget *area = do_glarea(window);
   // g_signal_connect(area, "render", G_CALLBACK(render), NULL);
   //
-  gl_area = gtk_gl_area_new();
-  gtk_gl_area_set_use_es(GTK_GL_AREA(gl_area), true);
-
-  g_signal_connect(gl_area, "realize", G_CALLBACK(realize), NULL);
-  g_signal_connect(gl_area, "render", G_CALLBACK(render), NULL);
   // g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(gtk_main_quit), NULL);
   //
   // gtk_widget_realize(gl_area);
@@ -442,7 +441,6 @@ void run_gui() {
   // gdk_gl_context_set_use_es(context, TRUE);
   // gdk_gl_context_set_debug_enabled(context, TRUE);
 
-  gtk_container_add(GTK_CONTAINER(window), gl_area);
   gtk_widget_show_all(window); // Mark all widgets to be displayed
 
   gtk_main();
