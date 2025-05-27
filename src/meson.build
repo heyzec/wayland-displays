@@ -2,6 +2,7 @@ src_files = [
   'src/main.cpp',
   'src/gui/canvas.cpp',
   'src/gui/details.cpp',
+  'src/gui/glarea.cpp',
   'src/outputs/outputs.cpp',
   'src/outputs/head.cpp',
   'src/outputs/config.cpp',
