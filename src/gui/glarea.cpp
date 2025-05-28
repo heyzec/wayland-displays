@@ -1,10 +1,9 @@
+#include "common/logger.hpp"
 #include "gui/box.hpp"
 #include "gui/copy.hpp"
 
 #include <epoxy/gl.h>
 #include <gtk/gtk.h>
-#include <iostream>
-#include <ostream>
 #include <stb_image.h>
 #include <sys/mman.h>
 #include <vector>
@@ -14,88 +13,40 @@ std::vector<std::string> names;
 int gl_width;
 int gl_height;
 
-const GLchar *VERTEX_SOURCE = "#version 330 core\n"
-                              "layout (location = 0) in vec3 aPosition;\n"
-                              "layout (location = 1) in vec2 aTexCoord;\n"
-                              "layout (location = 2) in float idx;\n"
-
-                              "out vec2 TexCoord;\n"
-                              "flat out int i;\n"
-
-                              "void main()\n"
-                              "{\n"
-                              "   gl_Position = vec4(aPosition, 1.0);\n"
-                              "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
-                              "   i = int(idx);\n"
-                              // "   i = 1;\n"
-                              "}\n";
-
-const GLchar *FRAGMENT_SOURCE =
-    "#version 330 core\n"
-    "out vec4 FragColor;\n"
-
-    "in vec2 TexCoord;\n"
-    "flat in int i;\n"
-
-    // texture sampler
-    "uniform sampler2D texture1;\n"
-    "uniform sampler2D textures[2];\n"
-
-    "void main()\n"
-    "{\n"
-    // "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    // "   FragColor =  mix(texture(texture2, TexCoord), vec4(1.0f, 1.0f, 1.0f, 1.0f), 0.0f);\n"
-    // "   FragColor =  mix(texture(textures[i], TexCoord), texture(texture1, TexCoord), 0.2f);\n"
-    "vec4 color;\n"
-    // "   vec4 red = vec4(1.0f, 0.0f, 0.0f, 1.0f);\n"
-    // "   vec4 green = vec4(0.0f, 1.0f, 0.0f, 1.0f);\n"
-    // // Workaround to deal with cannot index textures with non-constant
-    "if (i == 0) color = texture(textures[0], TexCoord);\n"
-    "if (i == 1) color = texture(textures[1], TexCoord);\n"
-    // "if (i == 0) color = red;\n"
-    // "if (i == 1) color = green;\n"
-    "FragColor = color;\n"
-    "}\n";
-
-static GLuint vbo;
-static GLuint vao;
-static GLuint vertex, fragment;
-static GLuint program;
-unsigned int EBO;
-unsigned int texture1, texture2;
+const std::string VERTEX_SOURCE =
+#include "vs.glsl"
+    ;
+const std::string FRAGMENT_SOURCE =
+#include "fs.glsl"
+    ;
 
 const int MAX_DISPLAYS = 3;
 
+// OpenGL variables
+static GLuint vao, vbo, ebo;
+static GLuint program, vertex, fragment;
 GLuint textures[MAX_DISPLAYS];
 
-// Swapped some coordinates to flip the image. Find a better way to deal with this, research origin
-// of coord system between wayland output and OpenGL
 float vertices[MAX_DISPLAYS * 6 * 4];
-
+// // Example layout of vertices variable:
 // float vertices[] = {
-//     -0.74f, 0.75f, 0.00f, 1.00f, 0.00f, 0.00f,  //
-//     -0.74f, -0.25f, 0.00f, 1.00f, 1.00f, 0.00f, //
-//     -0.97f, -0.25f, 0.00f, 0.00f, 1.00f, 0.00f, //
-//     -0.97f, 0.75f, 0.00f, 0.00f, 0.00f, 0.00f,  //
-//                                                 //
-//     -0.16f, 1.05f, 0.00f, 1.00f, 0.00f, 1.00f,  //
-//     -0.16f, -0.15f, 0.00f, 1.00f, 1.00f, 1.00f, //
-//     -0.47f, -0.15f, 0.00f, 0.00f, 1.00f, 1.00f, //
-//     -0.47f, 1.05f, 0.00f, 0.00f, 0.00f, 1.00f,  //
-//                                                 //
-//     -0.27f, 1.60f, 0.00f, 1.00f, 0.00f, 2.00f,  //
-//     -0.27f, 0.00f, 0.00f, 1.00f, 1.00f, 2.00f,  //
-//     -0.40f, 0.00f, 0.00f, 0.00f, 1.00f, 2.00f,  //
-//     -0.40f, 1.60f, 0.00f, 0.00f, 0.00f, 2.00f   //
+//     // box    // positions (x,y) // texture coords
+//     0.0, /**/ 1.0f,  1.0f,  /**/ 1.0f, 0.0f, // Box 0: top right
+//     0.0, /**/ 1.0f,  -1.0f, /**/ 1.0f, 1.0f, // Box 0: bottom right
+//     0.0, /**/ -1.0f, -1.0f, /**/ 0.0f, 1.0f, // Box 0: bottom left
+//     0.0, /**/ -1.0f, 1.0f,  /**/ 0.0f, 0.0f, // Box 0: top left
+//     1.0, /**/ 1.0f,  1.0f,  /**/ 1.0f, 0.0f, // Box 1: top right
+//                                              // ...
 // };
-// = {
-//     // float vertices[] = {
-//     // positions         // texture coords                 // texture coords
-//     1.0f,  1.0f,  0.0f, 1.0f, 0.0f, // top right          1.0f, 1.0f, // top right
-//     1.0f,  -1.0f, 0.0f, 1.0f, 1.0f, // bottom right       1.0f, 0.0f, // bottom right
-//     -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, // bottom left        0.0f, 0.0f, // bottom left
-//     -1.0f, 1.0f,  0.0f, 0.0f, 0.0f  // top left           0.0f, 1.0f  // top left
-// };
+const int VERTICES_IDX_OFFSET = 0;
+const int VERTICES_POS_OFFSET = 1;
+const int VERTICES_TEX_OFFSET = 3;
+const int VERTICES_IDX_COUNT = 1;
+const int VERTICES_POS_COUNT = 2;
+const int VERTICES_TEX_COUNT = 2;
+const int VERTICES_STRIDE = 5;
+const int VERTICES_PER_BOX = VERTICES_STRIDE * 4;
+
 // unsigned int indices[] = {
 //     0, 1,  3,  // triangle 1
 //     1, 2,  3,  // triangle 2
@@ -106,32 +57,38 @@ float vertices[MAX_DISPLAYS * 6 * 4];
 // };
 
 unsigned int indices[MAX_DISPLAYS * 6];
-// // unsigned int indices[] = {
-// //     // note that we start from 0!
-// //     0, 1, 3, // first triangle
-// //     1, 2, 3  // second triangle
-// // };
+// Example layout of indices variable:
+// unsigned int indices[] = {
+//     0, 1, 3, // Box 0: first triangle
+//     1, 2, 3, // Box 0: second triangle
+//     4, 5, 7, // Box 0: second triangle
+//     // ...
+// };
+const int INDICES_PER_BOX = 6;
 
 static GLuint create_shader(int type) {
-  GLuint shader;
-  shader = glCreateShader(type);
-  if (type == GL_FRAGMENT_SHADER) {
-    glShaderSource(shader, 1, &FRAGMENT_SOURCE, NULL);
-  }
+  GLuint shader = glCreateShader(type);
+  const char *src;
   if (type == GL_VERTEX_SHADER) {
-    glShaderSource(shader, 1, &VERTEX_SOURCE, NULL);
+    src = VERTEX_SOURCE.c_str();
+  } else if (type == GL_FRAGMENT_SHADER) {
+    src = FRAGMENT_SOURCE.c_str();
   }
+  glShaderSource(shader, 1, &src, NULL);
   glCompileShader(shader);
-  // check for shader compile errors
+
+  // Check for compile errors
   int success;
   char infoLog[512];
   glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
   if (!success) {
     glGetShaderInfoLog(shader, 512, NULL, infoLog);
-    if (type == GL_FRAGMENT_SHADER)
-      std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    else if (type == GL_VERTEX_SHADER)
-      std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+    if (type == GL_VERTEX_SHADER) {
+      log_critical("Failed to compile vertex shader: {}", infoLog);
+    } else if (type == GL_FRAGMENT_SHADER) {
+      log_critical("Failed to compile fragment shader: {}", infoLog);
+    }
+    exit(1);
   }
 
   return shader;
@@ -152,60 +109,45 @@ static void realize(GtkWidget *widget) {
 
   glGenVertexArrays(1, &vao);
   glGenBuffers(1, &vbo);
-  glGenBuffers(1, &EBO);
+  glGenBuffers(1, &ebo);
 
   // 1. bind Vertex Array Object
   glBindVertexArray(vao);
   // 2. copy our vertices array in a vertex buffer for OpenGL to use
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * N * 6 * 4, vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * N * VERTICES_PER_BOX, vertices, GL_STATIC_DRAW);
 
   // // 3. copy our index array in a element buffer for OpenGL to use
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(float) * N * 6, indices, GL_STATIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(float) * N * INDICES_PER_BOX, indices,
+               GL_STATIC_DRAW);
   // 4. then set the vertex attributes pointers
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+  glVertexAttribPointer(0, VERTICES_POS_COUNT, GL_FLOAT, GL_FALSE, VERTICES_STRIDE * sizeof(float),
+                        (void *)(VERTICES_POS_OFFSET * sizeof(float)));
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+  glVertexAttribPointer(1, VERTICES_TEX_COUNT, GL_FLOAT, GL_FALSE, VERTICES_STRIDE * sizeof(float),
+                        (void *)(VERTICES_TEX_OFFSET * sizeof(float)));
   glEnableVertexAttribArray(1);
-  glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(5 * sizeof(float)));
+  glVertexAttribPointer(2, VERTICES_IDX_COUNT, GL_FLOAT, GL_FALSE, VERTICES_STRIDE * sizeof(float),
+                        (void *)(VERTICES_IDX_OFFSET * sizeof(float)));
   glEnableVertexAttribArray(2);
 
-  // TEXTURES
-  int width, height, nrChannels;
-
-  glGenTextures(1, &texture1);
-  // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-  glBindTexture(GL_TEXTURE_2D, texture1);
-  unsigned char *data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
-  if (data) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-  } else {
-    std::cout << "Failed to load texture" << std::endl;
-  }
-  stbi_image_free(data);
-
+  // Create vertex and fragment shaders (glCreateShader, glCompileShader), then do error checking
   vertex = create_shader(GL_VERTEX_SHADER);
   fragment = create_shader(GL_FRAGMENT_SHADER);
 
+  // We are only using this one shader program
   program = glCreateProgram();
   glAttachShader(program, vertex);
   glAttachShader(program, fragment);
   glLinkProgram(program);
   glDetachShader(program, vertex);
   glDetachShader(program, fragment);
-
   glUseProgram(program);
-  glUniform1i(glGetUniformLocation(program, "texture1"), 0);
 
-  glGenTextures(2, textures);
+  glGenTextures(N, textures);
   int units[] = {1, 2};
   glUniform1iv(glGetUniformLocation(program, "textures"), 2, units);
-  GLenum err2;
-  while ((err2 = glGetError()) != GL_NO_ERROR) {
-    printf("OpenGL error after glTexSubImage2D: 0x%x\n", err2);
-  }
 }
 
 int prev = 0;
@@ -259,18 +201,16 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
       if (first) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, out->width, out->height, 0, GL_BGRA,
                      GL_UNSIGNED_BYTE, out->pixels);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        // glUniform1i(glGetUniformLocation(program, "texture2"), i + 1);
       } else {
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, out->width, out->height, GL_BGRA, GL_UNSIGNED_BYTE,
                         out->pixels);
-        glGenerateMipmap(GL_TEXTURE_2D);
         printf("Bytes: ");
         for (int i = 0; i < 100; i++) {
           printf("%02X ", ((unsigned char *)out->pixels)[i]);
         }
         printf("\n");
       }
+      glGenerateMipmap(GL_TEXTURE_2D);
       munmap(out->pixels, out->size);
       wl_buffer_destroy(out->buffer);
       close(out->fd);
@@ -281,22 +221,6 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
     if (copy_outputs.size() == 0) {
       printf("No outputs found, using default texture\n");
     }
-    // int idx = -1;
-    // for (int i = 0; i < copy_outputs.size(); i++) {
-    //   CopyOutput *coutput = copy_outputs.at(i);
-    //   if (strcmp(coutput->name, "DP-6") == 0) {
-    //     // printf("Found DP-5 at index %d\n", i);
-    //     idx = i;
-    //     break;
-    //   }
-    // }
-    // if (idx == -1) {
-    //   printf("No DP-6 found, using first texture\n");
-    //   idx = 0;
-    // }
-    // glActiveTexture(GL_TEXTURE1 + idx);
-    // glBindTexture(GL_TEXTURE_2D, textures[idx]);
-    // glUniform1i(glGetUniformLocation(program, "texture2"), idx + 1);
   }
 
   // ==============================================================
@@ -315,34 +239,16 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   printf("\n");
 
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * N * 6 * 4, vertices, GL_STATIC_DRAW);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(float) * N * 6, indices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * N * VERTICES_PER_BOX, vertices, GL_STATIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(float) * N * INDICES_PER_BOX, indices,
+               GL_STATIC_DRAW);
 
-  // as we only have a single shader, we could also just activate
-  // our shader once beforehand if we want to
-  glUseProgram(program);
-
-  // render
-  glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+  // Draw
+  glClearColor(0.95f, 0.95f, 0.95f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  // bind Texture
-  // glActiveTexture(GL_TEXTURE0);
-  // glBindTexture(GL_TEXTURE_2D, texture1);
-  // glActiveTexture(GL_TEXTURE1);
-  // glBindTexture(GL_TEXTURE_2D, texture2);
-  // render the triangle
   glBindVertexArray(vao);
-  // glDrawArrays(GL_TRIANGLES, 0, 3);
   glDrawElements(GL_TRIANGLES, N * 6, GL_UNSIGNED_INT, 0);
-  // glBindVertexArray(0);
-
-  // float greenValue = (sin(time_in_seconds) / 2.0f) + 0.5f;
-  // int vertexColorLocation = glGetUniformLocation(program, "ourColor");
-  // glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
-
-  // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
   gtk_gl_area_queue_render(area);
   return TRUE;
@@ -394,40 +300,40 @@ void update_glarea(std::vector<Box> new_boxes, std::vector<std::string> new_name
   float FAC = 0.15;
   for (int i = 0; i < boxes.size(); i++) {
     Box box = boxes.at(i);
-    // if (i != 1) {
-    //   continue;
-    // }
+    // (x1, y2) --> (x2, y2)
+    //    ^            ^
+    //    |            |
+    // (x1, y1) --> (x2, y1)
     float x1 = box.x * FAC / gl_width * 2 - 1;
     float x2 = x1 + box.width * FAC / gl_width * 2;
-    float y1 = -(box.y * FAC / gl_height * 2 - 1);
-    float y2 = y1 - box.height * FAC / gl_height * 2;
-    // x1 += i * 0.3;
-    // x2 += i * 0.3;
-    // y1 += i * 0.3;
-    // y2 += i * 0.3;
-    int V = 6 * 4;
-    vertices[i * V + 0] = x2;
-    vertices[i * V + 1] = y1;
-    vertices[i * V + 3] = 1.0f;
-    vertices[i * V + 4] = 0.0f;
-    vertices[i * V + 6] = x2;
-    vertices[i * V + 7] = y2;
-    vertices[i * V + 9] = 1.0f;
-    vertices[i * V + 10] = 1.0f;
-    vertices[i * V + 12] = x1;
-    vertices[i * V + 13] = y2;
-    vertices[i * V + 15] = 0.0f;
-    vertices[i * V + 16] = 1.0f;
-    vertices[i * V + 18] = x1;
-    vertices[i * V + 19] = y1;
-    vertices[i * V + 21] = 0.0f;
-    vertices[i * V + 22] = 0.0f;
-    vertices[i * V + 5] = i;
-    vertices[i * V + 11] = i;
-    vertices[i * V + 17] = i;
-    vertices[i * V + 23] = i;
+    float y2 = -(box.y * FAC / gl_height * 2 - 1);
+    float y1 = y2 - box.height * FAC / gl_height * 2;
+    int A = VERTICES_PER_BOX;
+    int B = VERTICES_STRIDE;
+    vertices[A * i + B * 0 + VERTICES_POS_OFFSET + 0] = x2;
+    vertices[A * i + B * 0 + VERTICES_POS_OFFSET + 1] = y2;
+    vertices[A * i + B * 1 + VERTICES_POS_OFFSET + 0] = x2;
+    vertices[A * i + B * 1 + VERTICES_POS_OFFSET + 1] = y1;
+    vertices[A * i + B * 2 + VERTICES_POS_OFFSET + 0] = x1;
+    vertices[A * i + B * 2 + VERTICES_POS_OFFSET + 1] = y1;
+    vertices[A * i + B * 3 + VERTICES_POS_OFFSET + 0] = x1;
+    vertices[A * i + B * 3 + VERTICES_POS_OFFSET + 1] = y2;
+    vertices[A * i + B * 0 + VERTICES_TEX_OFFSET + 0] = 1.0f;
+    vertices[A * i + B * 0 + VERTICES_TEX_OFFSET + 1] = 0.0f;
+    vertices[A * i + B * 1 + VERTICES_TEX_OFFSET + 0] = 1.0f;
+    vertices[A * i + B * 1 + VERTICES_TEX_OFFSET + 1] = 1.0f;
+    vertices[A * i + B * 2 + VERTICES_TEX_OFFSET + 0] = 0.0f;
+    vertices[A * i + B * 2 + VERTICES_TEX_OFFSET + 1] = 1.0f;
+    vertices[A * i + B * 3 + VERTICES_TEX_OFFSET + 0] = 0.0f;
+    vertices[A * i + B * 3 + VERTICES_TEX_OFFSET + 1] = 0.0f;
+    vertices[A * i + B * 0 + VERTICES_IDX_OFFSET] = i;
+    vertices[A * i + B * 1 + VERTICES_IDX_OFFSET] = i;
+    vertices[A * i + B * 2 + VERTICES_IDX_OFFSET] = i;
+    vertices[A * i + B * 3 + VERTICES_IDX_OFFSET] = i;
     int I = 6;
     int J = 4;
+    // TODO: Swapped some coordinates to flip the image. Find a better way to deal with this,
+    // research origin of coord system between wayland output and OpenGL
     indices[i * I + 0] = i * J + 0;
     indices[i * I + 1] = i * J + 1;
     indices[i * I + 2] = i * J + 3;
