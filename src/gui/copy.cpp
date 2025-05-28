@@ -146,7 +146,7 @@ static void buffer(void *data, struct zwlr_screencopy_frame_v1 *frame, uint form
 static void flags(void *data, struct zwlr_screencopy_frame_v1 *frame, uint flags) {
   CopyOutput *out = (CopyOutput *)data;
   out->copied = true;
-  printf("Got a flags event\n");
+  // printf("Got a flags event\n");
   zwlr_screencopy_frame_v1_destroy(frame);
   // wl_buffer_destroy(out->buffer);
   // munmap(out->pixels, out->size);

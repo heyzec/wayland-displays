@@ -10,6 +10,7 @@
 #include <vector>
 
 std::vector<struct Box> boxes;
+std::vector<std::string> names;
 int gl_width;
 int gl_height;
 
@@ -25,7 +26,7 @@ const GLchar *VERTEX_SOURCE = "#version 330 core\n"
                               "{\n"
                               "   gl_Position = vec4(aPosition, 1.0);\n"
                               "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
-                              "   i = int(idx + 0.1);\n"
+                              "   i = int(idx);\n"
                               // "   i = 1;\n"
                               "}\n";
 
@@ -38,7 +39,7 @@ const GLchar *FRAGMENT_SOURCE =
 
     // texture sampler
     "uniform sampler2D texture1;\n"
-    "uniform sampler2D textures[3];\n"
+    "uniform sampler2D textures[2];\n"
 
     "void main()\n"
     "{\n"
@@ -46,10 +47,13 @@ const GLchar *FRAGMENT_SOURCE =
     // "   FragColor =  mix(texture(texture2, TexCoord), vec4(1.0f, 1.0f, 1.0f, 1.0f), 0.0f);\n"
     // "   FragColor =  mix(texture(textures[i], TexCoord), texture(texture1, TexCoord), 0.2f);\n"
     "vec4 color;\n"
-    // Workaround to deal with cannot index textures with non-constant
+    // "   vec4 red = vec4(1.0f, 0.0f, 0.0f, 1.0f);\n"
+    // "   vec4 green = vec4(0.0f, 1.0f, 0.0f, 1.0f);\n"
+    // // Workaround to deal with cannot index textures with non-constant
     "if (i == 0) color = texture(textures[0], TexCoord);\n"
     "if (i == 1) color = texture(textures[1], TexCoord);\n"
-    "if (i == 2) color = texture(textures[2], TexCoord);\n"
+    // "if (i == 0) color = red;\n"
+    // "if (i == 1) color = green;\n"
     "FragColor = color;\n"
     "}\n";
 
@@ -134,7 +138,7 @@ static GLuint create_shader(int type) {
 }
 
 bool init = false;
-int N = 3;
+int N = 2;
 
 static void realize(GtkWidget *widget) {
   init = true;
@@ -195,9 +199,9 @@ static void realize(GtkWidget *widget) {
   glUseProgram(program);
   glUniform1i(glGetUniformLocation(program, "texture1"), 0);
 
-  glGenTextures(boxes.size(), textures);
-  int units[] = {1, 2, 3};
-  glUniform1iv(glGetUniformLocation(program, "textures"), 3, units);
+  glGenTextures(2, textures);
+  int units[] = {1, 2};
+  glUniform1iv(glGetUniformLocation(program, "textures"), 2, units);
   GLenum err2;
   while ((err2 = glGetError()) != GL_NO_ERROR) {
     printf("OpenGL error after glTexSubImage2D: 0x%x\n", err2);
@@ -218,7 +222,7 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   int time_in_seconds = usec / 1000000.0;
   count += 1;
   if (prev != time_in_seconds) {
-    printf("FPS: %d\n", count);
+    // printf("FPS: %d\n", count);
     count = 0;
   }
   prev = time_in_seconds;
@@ -233,8 +237,12 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   // glDeleteTextures(boxes.size(), textures);
   // glGenTextures(boxes.size(), textures);
   if (n % 10 == 0) {
-    printf("============Getting pixels============\n");
+    // printf("============Getting pixels============\n");
     std::vector<CopyOutput *> copy_outputs = *get_pixels();
+
+    std::vector<Box> sorted_boxes;
+    std::vector<std::string> sorted_names;
+
     for (int i = 0; i < copy_outputs.size(); i++) {
       CopyOutput *out = copy_outputs.at(i);
 
@@ -244,6 +252,7 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
       //   printf("Output %s not copied yet\n", out->name);
       //   continue;
       // }
+      printf("Copying output %s with size %d x %d\n", out->name, out->width, out->height);
 
       glActiveTexture(GL_TEXTURE1 + i);
       glBindTexture(GL_TEXTURE_2D, textures[i]);
@@ -272,21 +281,21 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
     if (copy_outputs.size() == 0) {
       printf("No outputs found, using default texture\n");
     }
-    int idx = -1;
-    for (int i = 0; i < copy_outputs.size(); i++) {
-      CopyOutput *coutput = copy_outputs.at(i);
-      if (strcmp(coutput->name, "DP-6") == 0) {
-        // printf("Found DP-5 at index %d\n", i);
-        idx = i;
-        break;
-      }
-    }
-    if (idx == -1) {
-      printf("No DP-6 found, using first texture\n");
-      idx = 0;
-    }
-    glActiveTexture(GL_TEXTURE1 + idx);
-    glBindTexture(GL_TEXTURE_2D, textures[idx]);
+    // int idx = -1;
+    // for (int i = 0; i < copy_outputs.size(); i++) {
+    //   CopyOutput *coutput = copy_outputs.at(i);
+    //   if (strcmp(coutput->name, "DP-6") == 0) {
+    //     // printf("Found DP-5 at index %d\n", i);
+    //     idx = i;
+    //     break;
+    //   }
+    // }
+    // if (idx == -1) {
+    //   printf("No DP-6 found, using first texture\n");
+    //   idx = 0;
+    // }
+    // glActiveTexture(GL_TEXTURE1 + idx);
+    // glBindTexture(GL_TEXTURE_2D, textures[idx]);
     // glUniform1i(glGetUniformLocation(program, "texture2"), idx + 1);
   }
 
@@ -326,7 +335,7 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   // render the triangle
   glBindVertexArray(vao);
   // glDrawArrays(GL_TRIANGLES, 0, 3);
-  glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
+  glDrawElements(GL_TRIANGLES, N * 6, GL_UNSIGNED_INT, 0);
   // glBindVertexArray(0);
 
   // float greenValue = (sin(time_in_seconds) / 2.0f) + 0.5f;
@@ -345,14 +354,46 @@ static void on_size_allocate(GtkWidget *widget, GdkRectangle *allocation, gpoint
   gl_height = allocation->height;
 }
 
-void update_glarea(std::vector<Box> new_boxes, std::vector<std::string> names) {
+std::vector<std::string> output_names;
+
+void update_glarea(std::vector<Box> new_boxes, std::vector<std::string> new_names) {
   printf("update gl alled\n");
+  if (output_names.size() == 0) {
+    std::vector<CopyOutput *> copy_outputs = *get_pixels();
+
+    for (int i = 0; i < copy_outputs.size(); i++) {
+      CopyOutput *out = copy_outputs.at(i);
+      output_names.push_back(out->name);
+    }
+  }
+
+  std::vector<Box> sorted_boxes;
+  std::vector<std::string> sorted_names;
   boxes = new_boxes;
+  names = new_names;
+  for (int i = 0; i < output_names.size(); i++) {
+    for (int j = 0; j < boxes.size(); j++) {
+      std::string name = names.at(j);
+      printf("Comparing %s with %s\n", name.c_str(), output_names.at(i).c_str());
+
+      if (strcmp(name.c_str(), output_names.at(i).c_str()) == 0) {
+        sorted_boxes.push_back(boxes.at(j));
+        sorted_names.push_back(name);
+        break;
+      }
+    }
+  }
+  boxes = sorted_boxes;
+  names = sorted_names;
+  for (int i = 0; i < boxes.size(); i++) {
+    printf("Box %d: (%f, %f, %f, %f) - %s\n", i, boxes.at(i).x, boxes.at(i).y, boxes.at(i).width,
+           boxes.at(i).height, names.at(i).c_str());
+  }
+  printf("Size of boxes: %d\n", boxes.size());
 
   float FAC = 0.15;
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < boxes.size(); i++) {
     Box box = boxes.at(i);
-    printf("N BOXES: %d\n", boxes.size());
     // if (i != 1) {
     //   continue;
     // }
@@ -401,10 +442,10 @@ void update_glarea(std::vector<Box> new_boxes, std::vector<std::string> names) {
   if (!init) {
     return;
   }
-  printf("Updating GL area with %d boxes\n", boxes.size());
-  int N = 3;
-  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * N * 6 * 4, vertices, GL_STATIC_DRAW);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(float) * N * 6, indices, GL_STATIC_DRAW);
+  // printf("Updating GL area with %d boxes\n", boxes.size());
+  // int N = 3;
+  // glBufferData(GL_ARRAY_BUFFER, sizeof(float) * N * 6 * 4, vertices, GL_STATIC_DRAW);
+  // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(float) * N * 6, indices, GL_STATIC_DRAW);
 }
 
 void setup_glarea(GtkWidget *gl_area) {
