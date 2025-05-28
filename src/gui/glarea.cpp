@@ -14,16 +14,13 @@ int gl_height;
 
 const GLchar *VERTEX_SOURCE = "#version 330 core\n"
                               "layout (location = 0) in vec3 aPosition;\n"
-                              "layout (location = 1) in vec3 aColor;\n"
-                              "layout (location = 2) in vec2 aTexCoord;\n"
+                              "layout (location = 1) in vec2 aTexCoord;\n"
 
-                              "out vec3 ourColor;\n"
                               "out vec2 TexCoord;\n"
 
                               "void main()\n"
                               "{\n"
                               "   gl_Position = vec4(aPosition, 1.0);\n"
-                              "   ourColor = aColor;\n"
                               "   TexCoord = vec2(aTexCoord.x, aTexCoord.y);\n"
                               "}\n";
 
@@ -31,7 +28,6 @@ const GLchar *FRAGMENT_SOURCE =
     "#version 330 core\n"
     "out vec4 FragColor;\n"
 
-    "in vec3 ourColor;\n"
     "in vec2 TexCoord;\n"
 
     // texture sampler
@@ -41,7 +37,8 @@ const GLchar *FRAGMENT_SOURCE =
     "void main()\n"
     "{\n"
     // "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    "   FragColor =  mix(texture(texture2, TexCoord), vec4(1.0f, 1.0f, 1.0f, 1.0f), 0.0f);\n"
+    // "   FragColor =  mix(texture(texture2, TexCoord), vec4(1.0f, 1.0f, 1.0f, 1.0f), 0.0f);\n"
+    "   FragColor =  mix(texture(texture2, TexCoord), texture(texture1, TexCoord), 0.2f);\n"
     "}\n";
 
 static GLuint vbo;
@@ -51,29 +48,21 @@ static GLuint program;
 unsigned int EBO;
 unsigned int texture1, texture2;
 
-// float vertices[] = {
-//     0.5f,  0.5f,  0.0f, // top right
-//     0.5f,  -0.5f, 0.0f, // bottom right
-//     -0.5f, -0.5f, 0.0f, // bottom left
-//     -0.5f, 0.5f,  0.0f  // top left
-// };
+const int MAX_DISPLAYS = 16;
 
-// float vertices[] = {
-//     // positions          // colors           // texture coords
-//     1.0f,  1.0f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top right
-//     1.0f,  -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom right
-//     -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
-//     -1.0f, 1.0f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // top left
-// };
+GLuint textures[MAX_DISPLAYS];
+
 // Swapped some coordinates to flip the image. Find a better way to deal with this, research origin
 // of coord system between wayland output and OpenGL
+// float vertices[MAX_DISPLAYS * 5 * 4]
 float vertices[] = {
-    // positions          // colors           // texture coords
-    1.0f,  1.0f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, // top right
-    1.0f,  -1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, // bottom right
-    -1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, // bottom left
-    -1.0f, 1.0f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f  // top left
+    // positions         // texture coords                 // texture coords
+    1.0f,  1.0f,  0.0f, 1.0f, 0.0f, // top right          1.0f, 1.0f, // top right
+    1.0f,  -1.0f, 0.0f, 1.0f, 1.0f, // bottom right       1.0f, 0.0f, // bottom right
+    -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, // bottom left        0.0f, 0.0f, // bottom left
+    -1.0f, 1.0f,  0.0f, 0.0f, 0.0f  // top left           0.0f, 1.0f  // top left
 };
+// float indices[MAX_DISPLAYS * 6]
 unsigned int indices[] = {
     // note that we start from 0!
     0, 1, 3, // first triangle
@@ -128,12 +117,10 @@ static void realize(GtkWidget *widget) {
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
   // 4. then set the vertex attributes pointers
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(6 * sizeof(float)));
-  glEnableVertexAttribArray(2);
 
   // TEXTURES
   int width, height, nrChannels;
@@ -189,13 +176,17 @@ static void realize(GtkWidget *widget) {
 
   glUseProgram(program);
   glUniform1i(glGetUniformLocation(program, "texture1"), 0);
-  glUniform1i(glGetUniformLocation(program, "texture2"), 1);
+
+  glGenTextures(boxes.size(), textures);
 }
 
 int prev = 0;
 int count = 0;
 
 static gboolean render(GtkGLArea *area, GdkGLContext *context) {
+  // ==============================================================
+  // FPS
+  // ==============================================================
   gint64 usec = g_get_monotonic_time();
   int time_in_seconds = usec / 1000000.0;
   count += 1;
@@ -221,19 +212,19 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
   // bind Texture
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, texture1);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, texture2);
+  // glActiveTexture(GL_TEXTURE0);
+  // glBindTexture(GL_TEXTURE_2D, texture1);
+  // glActiveTexture(GL_TEXTURE1);
+  // glBindTexture(GL_TEXTURE_2D, texture2);
   // render the triangle
   glBindVertexArray(vao);
   // glDrawArrays(GL_TRIANGLES, 0, 3);
   glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
   // glBindVertexArray(0);
 
-  float greenValue = (sin(time_in_seconds) / 2.0f) + 0.5f;
-  int vertexColorLocation = glGetUniformLocation(program, "ourColor");
-  glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+  // float greenValue = (sin(time_in_seconds) / 2.0f) + 0.5f;
+  // int vertexColorLocation = glGetUniformLocation(program, "ourColor");
+  // glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
 
   // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -264,14 +255,14 @@ void update_glarea(std::vector<Box> new_boxes, std::vector<std::string> names) {
     vertices[0] = x2;
     vertices[1] = y1;
 
-    vertices[8] = x2;
-    vertices[9] = y2;
+    vertices[5] = x2;
+    vertices[6] = y2;
 
-    vertices[16] = x1;
-    vertices[17] = y2;
+    vertices[10] = x1;
+    vertices[11] = y2;
 
-    vertices[24] = x1;
-    vertices[25] = y1;
+    vertices[15] = x1;
+    vertices[16] = y1;
     printf("(x1, y1) = (%f, %f)\n", x1, y1);
     printf("(x2, y1) = (%f, %f)\n", x2, y1);
     printf("(x1, y2) = (%f, %f)\n", x1, y2);
