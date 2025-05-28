@@ -120,19 +120,20 @@ static const struct wl_registry_listener registry_listener = {
 static void buffer(void *data, struct zwlr_screencopy_frame_v1 *frame, uint format, uint width,
                    uint height, uint stride) {
   CopyOutput *out = (CopyOutput *)data;
-  printf("Got a buffer event of format %d\n", format);
+  // printf("Got a buffer event of format %d\n", format);
 
   char shm_name[32];
   sprintf(shm_name, "/my_shm%s", out->name);
   int fd = shm_open(shm_name, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
   out->fd = fd;
-  // shm_unlink(shm_name);
+  shm_unlink(shm_name);
 
   size_t size = stride * height;
+  out->size = size;
   ftruncate(fd, size);
   wl_shm_pool *pool = wl_shm_create_pool(shm, fd, size);
   out->buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, format);
-  // wl_shm_pool_destroy(pool); // protocol says we can destroy pool after creating buffer
+  wl_shm_pool_destroy(pool); // protocol says we can destroy pool after creating buffer
 
   zwlr_screencopy_frame_v1_copy(frame, out->buffer);
 
@@ -144,6 +145,7 @@ static void buffer(void *data, struct zwlr_screencopy_frame_v1 *frame, uint form
 
 static void flags(void *data, struct zwlr_screencopy_frame_v1 *frame, uint flags) {
   CopyOutput *out = (CopyOutput *)data;
+  out->copied = true;
   printf("Got a flags event\n");
   zwlr_screencopy_frame_v1_destroy(frame);
   // wl_buffer_destroy(out->buffer);
@@ -174,7 +176,7 @@ static void linux_dmabuf(void *data, struct zwlr_screencopy_frame_v1 *frame, uin
 }
 
 static void buffer_done(void *data, struct zwlr_screencopy_frame_v1 *frame) {
-  printf("Got a buf done event\n");
+  // printf("Got a buf done event\n");
 }
 
 static const struct zwlr_screencopy_frame_v1_listener frame_listener = {
@@ -220,15 +222,21 @@ void wlr_screencopy_init() {
   // printf("Bytes (in init): %.*s\n", 100, (char *)pixels);
 }
 
+int first_ = true;
+
 std::vector<CopyOutput *> *get_pixels() {
+  // if (!first_) {
+  //   return &outputs;
+  // }
   for (CopyOutput *coutput : outputs) {
     frame = zwlr_screencopy_manager_v1_capture_output(manager, 0, coutput->output);
     zwlr_screencopy_frame_v1_add_listener(frame, &frame_listener, coutput);
-    printf("Roundtrip 2\n");
-    for (int i = 0; i < 10; i++) {
+    // printf("Roundtrip 2\n");
+    for (int i = 0; i < 1000; i++) {
       wl_display_roundtrip(display);
     }
   }
+  first_ = false;
 
   return &outputs;
 }

@@ -19,6 +19,7 @@ struct CopyOutput {
   char *name;
   uint size; // Obtained from stride * height
   int fd;
+  bool copied = false;
 };
 
 void wlr_screencopy_init();
