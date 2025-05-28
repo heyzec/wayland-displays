@@ -60,13 +60,30 @@ static GLuint program;
 unsigned int EBO;
 unsigned int texture1, texture2;
 
-const int MAX_DISPLAYS = 16;
+const int MAX_DISPLAYS = 3;
 
 GLuint textures[MAX_DISPLAYS];
 
 // Swapped some coordinates to flip the image. Find a better way to deal with this, research origin
 // of coord system between wayland output and OpenGL
-float vertices[MAX_DISPLAYS * 5 * 4];
+float vertices[MAX_DISPLAYS * 6 * 4];
+
+// float vertices[] = {
+//     -0.74f, 0.75f, 0.00f, 1.00f, 0.00f, 0.00f,  //
+//     -0.74f, -0.25f, 0.00f, 1.00f, 1.00f, 0.00f, //
+//     -0.97f, -0.25f, 0.00f, 0.00f, 1.00f, 0.00f, //
+//     -0.97f, 0.75f, 0.00f, 0.00f, 0.00f, 0.00f,  //
+//                                                 //
+//     -0.16f, 1.05f, 0.00f, 1.00f, 0.00f, 1.00f,  //
+//     -0.16f, -0.15f, 0.00f, 1.00f, 1.00f, 1.00f, //
+//     -0.47f, -0.15f, 0.00f, 0.00f, 1.00f, 1.00f, //
+//     -0.47f, 1.05f, 0.00f, 0.00f, 0.00f, 1.00f,  //
+//                                                 //
+//     -0.27f, 1.60f, 0.00f, 1.00f, 0.00f, 2.00f,  //
+//     -0.27f, 0.00f, 0.00f, 1.00f, 1.00f, 2.00f,  //
+//     -0.40f, 0.00f, 0.00f, 0.00f, 1.00f, 2.00f,  //
+//     -0.40f, 1.60f, 0.00f, 0.00f, 0.00f, 2.00f   //
+// };
 // = {
 //     // float vertices[] = {
 //     // positions         // texture coords                 // texture coords
@@ -75,12 +92,21 @@ float vertices[MAX_DISPLAYS * 5 * 4];
 //     -1.0f, -1.0f, 0.0f, 0.0f, 1.0f, // bottom left        0.0f, 0.0f, // bottom left
 //     -1.0f, 1.0f,  0.0f, 0.0f, 0.0f  // top left           0.0f, 1.0f  // top left
 // };
-unsigned int indices[MAX_DISPLAYS * 6];
 // unsigned int indices[] = {
-//     // note that we start from 0!
-//     0, 1, 3, // first triangle
-//     1, 2, 3  // second triangle
+//     0, 1,  3,  // triangle 1
+//     1, 2,  3,  // triangle 2
+//     4, 5,  7,  // triangle 3
+//     5, 6,  7,  // triangle 4
+//     8, 9,  11, // triangle 5
+//     9, 10, 11  // triangle 6
 // };
+
+unsigned int indices[MAX_DISPLAYS * 6];
+// // unsigned int indices[] = {
+// //     // note that we start from 0!
+// //     0, 1, 3, // first triangle
+// //     1, 2, 3  // second triangle
+// // };
 
 static GLuint create_shader(int type) {
   GLuint shader;
@@ -128,7 +154,7 @@ static void realize(GtkWidget *widget) {
   glBindVertexArray(vao);
   // 2. copy our vertices array in a vertex buffer for OpenGL to use
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * N * 5 * 4, vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * N * 6 * 4, vertices, GL_STATIC_DRAW);
 
   // // 3. copy our index array in a element buffer for OpenGL to use
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -229,16 +255,6 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
       } else {
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, out->width, out->height, GL_BGRA, GL_UNSIGNED_BYTE,
                         out->pixels);
-        // Check for errors
-        GLenum err;
-        while ((err = glGetError()) != GL_NO_ERROR) {
-          printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-          printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-          printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-          printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-          printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-          printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-        }
         glGenerateMipmap(GL_TEXTURE_2D);
         printf("Bytes: ");
         for (int i = 0; i < 100; i++) {
@@ -246,26 +262,9 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
         }
         printf("\n");
       }
-      // printf("Munmapping with size %d\n", out->size);
       munmap(out->pixels, out->size);
       wl_buffer_destroy(out->buffer);
       close(out->fd);
-    }
-    // Check for errors
-    GLenum err;
-    while ((err = glGetError()) != GL_NO_ERROR) {
-      printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-      printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-      printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-      printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-      printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-      printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-      printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-      printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-      printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-      printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-      printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
-      printf("OpenGL error after glTexSubImage2D: 0x%x\n", err);
     }
     if (first) {
       first = false;
@@ -296,8 +295,20 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   // ==============================================================
 
   // 2. copy our vertices array in a vertex buffer for OpenGL to use
+  printf("Vertices: \n");
+  for (int i = 0; i < MAX_DISPLAYS * 6 * 4; i++) {
+    printf("%f ", vertices[i]);
+  }
+  printf("\nIndices: \n");
+  for (int i = 0; i < MAX_DISPLAYS * 6; i++) {
+    printf("%u ", indices[i]);
+  }
+  printf("\n");
+
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * N * 6 * 4, vertices, GL_STATIC_DRAW);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(float) * N * 6, indices, GL_STATIC_DRAW);
 
   // as we only have a single shader, we could also just activate
   // our shader once beforehand if we want to
@@ -315,7 +326,7 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   // render the triangle
   glBindVertexArray(vao);
   // glDrawArrays(GL_TRIANGLES, 0, 3);
-  glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+  glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
   // glBindVertexArray(0);
 
   // float greenValue = (sin(time_in_seconds) / 2.0f) + 0.5f;
@@ -349,10 +360,10 @@ void update_glarea(std::vector<Box> new_boxes, std::vector<std::string> names) {
     float x2 = x1 + box.width * FAC / gl_width * 2;
     float y1 = -(box.y * FAC / gl_height * 2 - 1);
     float y2 = y1 - box.height * FAC / gl_height * 2;
-    x1 += i * 0.3;
-    x2 += i * 0.3;
-    y1 += i * 0.3;
-    y2 += i * 0.3;
+    // x1 += i * 0.3;
+    // x2 += i * 0.3;
+    // y1 += i * 0.3;
+    // y2 += i * 0.3;
     int V = 6 * 4;
     vertices[i * V + 0] = x2;
     vertices[i * V + 1] = y1;
@@ -375,12 +386,13 @@ void update_glarea(std::vector<Box> new_boxes, std::vector<std::string> names) {
     vertices[i * V + 17] = i;
     vertices[i * V + 23] = i;
     int I = 6;
-    indices[i * I + 0] = 0;
-    indices[i * I + 1] = 1;
-    indices[i * I + 2] = 3;
-    indices[i * I + 3] = 1;
-    indices[i * I + 4] = 2;
-    indices[i * I + 5] = 3;
+    int J = 4;
+    indices[i * I + 0] = i * J + 0;
+    indices[i * I + 1] = i * J + 1;
+    indices[i * I + 2] = i * J + 3;
+    indices[i * I + 3] = i * J + 1;
+    indices[i * I + 4] = i * J + 2;
+    indices[i * I + 5] = i * J + 3;
     // printf("(x1, y1) = (%f, %f)\n", x1, y1);
     // printf("(x2, y1) = (%f, %f)\n", x2, y1);
     // printf("(x1, y2) = (%f, %f)\n", x1, y2);
@@ -391,7 +403,7 @@ void update_glarea(std::vector<Box> new_boxes, std::vector<std::string> names) {
   }
   printf("Updating GL area with %d boxes\n", boxes.size());
   int N = 3;
-  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * N * 5 * 4, vertices, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(float) * N * 6 * 4, vertices, GL_STATIC_DRAW);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(float) * N * 6, indices, GL_STATIC_DRAW);
 }
 
