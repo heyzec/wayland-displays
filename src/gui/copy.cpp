@@ -119,36 +119,36 @@ static const struct wl_registry_listener registry_listener = {
 
 static void buffer(void *data, struct zwlr_screencopy_frame_v1 *frame, uint format, uint width,
                    uint height, uint stride) {
-  CopyOutput *copy_output = (CopyOutput *)data;
+  CopyOutput *out = (CopyOutput *)data;
   printf("Got a buffer event of format %d\n", format);
 
   char shm_name[32];
-  sprintf(shm_name, "/my_shm%s", copy_output->name);
+  sprintf(shm_name, "/my_shm%s", out->name);
   int fd = shm_open(shm_name, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-  // int fd = shm_open("/my_shm14", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-  printf("Fd %d\n", fd);
+  out->fd = fd;
+  // shm_unlink(shm_name);
+
   size_t size = stride * height;
-  int stat = ftruncate(fd, size);
-  printf("Stat %d\n", stat);
+  ftruncate(fd, size);
   wl_shm_pool *pool = wl_shm_create_pool(shm, fd, size);
-  wl_buffer *buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, format);
-  printf("Created size %zu\n", size);
+  out->buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, format);
+  // wl_shm_pool_destroy(pool); // protocol says we can destroy pool after creating buffer
 
-  zwlr_screencopy_frame_v1_copy(frame, buffer);
+  zwlr_screencopy_frame_v1_copy(frame, out->buffer);
 
-  pixels = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-  printf("Putting pixels into CO with %p\n", copy_output);
-  copy_output->pixels = pixels;
-  printf("Bytes (in buffer): %.*s\n", 100, (char *)pixels);
-
-  copy_output->width = width;
-  copy_output->height = height;
-  copy_output->stride = stride;
+  out->pixels = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  out->width = width;
+  out->height = height;
+  out->stride = stride;
 }
 
 static void flags(void *data, struct zwlr_screencopy_frame_v1 *frame, uint flags) {
+  CopyOutput *out = (CopyOutput *)data;
   printf("Got a flags event\n");
   zwlr_screencopy_frame_v1_destroy(frame);
+  // wl_buffer_destroy(out->buffer);
+  // munmap(out->pixels, out->size);
+  // close(out->fd);
 }
 
 static void ready(void *data, struct zwlr_screencopy_frame_v1 *frame, uint tv_sec_hi,
