@@ -137,33 +137,6 @@ static void realize(GtkWidget *widget) {
   }
   stbi_image_free(data);
 
-  glGenTextures(1, &texture2);
-  // // all upcoming GL_TEXTURE_2D operations now have effect on this texture object
-  glBindTexture(GL_TEXTURE_2D, texture2);
-  // data = stbi_load("awesomeface.png", &width, &height, &nrChannels, 0);
-  // if (data) {
-  //   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-  //   glGenerateMipmap(GL_TEXTURE_2D);
-  // } else {
-  //   std::cout << "Failed to load texture" << std::endl;
-  // }
-  // stbi_image_free(data);
-  // Upload pixel data: 2x2 image
-  std::vector<CopyOutput *> copy_outputs = *get_pixels();
-  CopyOutput *selected;
-  for (CopyOutput *coutput : copy_outputs) {
-    if (strcmp(coutput->name, "DP-6") == 0) {
-      selected = coutput;
-      break;
-    }
-  }
-  uint w = selected->width;
-  uint h = selected->height;
-  printf("Selected output: %s, %d x %d\n", selected->name, w, h);
-  void *pixels = selected->pixels;
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
-  glGenerateMipmap(GL_TEXTURE_2D);
-
   vertex = create_shader(GL_VERTEX_SHADER);
   fragment = create_shader(GL_FRAGMENT_SHADER);
 
@@ -198,6 +171,35 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
 
   if (gtk_gl_area_get_error(area) != NULL)
     return FALSE;
+  // ==============================================================
+  // COPY PIXELS
+  // ==============================================================
+  std::vector<CopyOutput *> copy_outputs = *get_pixels();
+  for (int i = 0; i < copy_outputs.size(); i++) {
+    CopyOutput *out = copy_outputs.at(i);
+    glActiveTexture(GL_TEXTURE1 + i);
+    glBindTexture(GL_TEXTURE_2D, textures[i]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, out->width, out->height, 0, GL_BGRA, GL_UNSIGNED_BYTE,
+                 out->pixels);
+    glGenerateMipmap(GL_TEXTURE_2D);
+    // glUniform1i(glGetUniformLocation(program, "texture2"), i + 1);
+  }
+  int idx = 0;
+  for (int i = 0; i < copy_outputs.size(); i++) {
+    CopyOutput *coutput = copy_outputs.at(i);
+    if (strcmp(coutput->name, "DP-6") == 0) {
+      printf("Found DP-5 at index %d\n", i);
+      idx = i;
+      break;
+    }
+  }
+  glActiveTexture(GL_TEXTURE1 + idx);
+  glBindTexture(GL_TEXTURE_2D, textures[idx]);
+  glUniform1i(glGetUniformLocation(program, "texture2"), idx + 1);
+
+  // ==============================================================
+  // OTHERS
+  // ==============================================================
 
   // 2. copy our vertices array in a vertex buffer for OpenGL to use
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
