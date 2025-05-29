@@ -40,13 +40,13 @@ struct OutputState {
  * Initialize this module (by connecting to the Wayland compositor).
  * This function must be called before other functions in this module.
  */
-
 void screencopy_init();
+
 /**
  * Get a container of frames of all outputs.
  */
-
 ScreencopyObject screencopy_get();
+
 /**
  * Destroy the container of frames to free memory after use.
  */
