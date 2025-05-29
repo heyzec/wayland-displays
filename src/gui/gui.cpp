@@ -181,8 +181,8 @@ void setup_gui() {
 }
 
 void run_gui() {
+  screencopy_init();
   setup_gui();
-  wlr_screencopy_init();
 
   gtk_widget_show_all(window); // Mark all widgets to be displayed
 

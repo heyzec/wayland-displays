@@ -1,11 +1,6 @@
 #include "wlr-screencopy-unstable-v1.h"
 #include <vector>
 
-extern zwlr_screencopy_manager_v1 *manager;
-extern zwlr_screencopy_frame_v1 *frame;
-extern wl_output *output;
-extern wl_shm *shm;
-
 struct CopyOutput {
   zwlr_screencopy_manager_v1 *manager;
   zwlr_screencopy_frame_v1 *frame;
@@ -22,5 +17,21 @@ struct CopyOutput {
   bool copied = false;
 };
 
-void wlr_screencopy_init();
-std::vector<CopyOutput *> *get_pixels();
+void screencopy_init();
+std::vector<CopyOutput *> *screencopy_get();
+
+/**
+ * Initialize this module (by connecting to the Wayland compositor).
+ * This function must be called before other functions in this module.
+ */
+
+void screencopy_init();
+/**
+ * Get a container of frames of all outputs.
+ */
+
+std::vector<CopyOutput *> *screencopy_get();
+/**
+ * Destroy the container of frames to free memory after use.
+ */
+void screencopy_destroy();

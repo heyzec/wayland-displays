@@ -180,7 +180,7 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   // glGenTextures(boxes.size(), textures);
   if (n % 10 == 0) {
     // printf("============Getting pixels============\n");
-    std::vector<CopyOutput *> copy_outputs = *get_pixels();
+    std::vector<CopyOutput *> copy_outputs = *screencopy_get();
 
     std::vector<Box> sorted_boxes;
     std::vector<std::string> sorted_names;
@@ -228,15 +228,15 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   // ==============================================================
 
   // 2. copy our vertices array in a vertex buffer for OpenGL to use
-  printf("Vertices: \n");
-  for (int i = 0; i < MAX_DISPLAYS * 6 * 4; i++) {
-    printf("%f ", vertices[i]);
-  }
-  printf("\nIndices: \n");
-  for (int i = 0; i < MAX_DISPLAYS * 6; i++) {
-    printf("%u ", indices[i]);
-  }
-  printf("\n");
+  // printf("Vertices: \n");
+  // for (int i = 0; i < MAX_DISPLAYS * 6 * 4; i++) {
+  //   printf("%f ", vertices[i]);
+  // }
+  // printf("\nIndices: \n");
+  // for (int i = 0; i < MAX_DISPLAYS * 6; i++) {
+  //   printf("%u ", indices[i]);
+  // }
+  // printf("\n");
 
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   glBufferData(GL_ARRAY_BUFFER, sizeof(float) * N * VERTICES_PER_BOX, vertices, GL_STATIC_DRAW);
@@ -265,7 +265,7 @@ std::vector<std::string> output_names;
 void update_glarea(std::vector<Box> new_boxes, std::vector<std::string> new_names) {
   printf("update gl alled\n");
   if (output_names.size() == 0) {
-    std::vector<CopyOutput *> copy_outputs = *get_pixels();
+    std::vector<CopyOutput *> copy_outputs = *screencopy_get();
 
     for (int i = 0; i < copy_outputs.size(); i++) {
       CopyOutput *out = copy_outputs.at(i);

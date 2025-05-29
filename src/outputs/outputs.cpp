@@ -71,14 +71,10 @@ static const struct zwlr_output_manager_v1_listener manager_listener = {
 // ============================================================
 static void geometry(void *data, struct wl_output *output, int x, int y, int physical_width,
                      int physical_height, int subpixel, const char *make, const char *model,
-                     int transform) {
-  /*printf("I got name %s\n");*/
-}
+                     int transform) {}
 
 static void mode(void *data, struct wl_output *output, uint flags, int width, int height,
-                 int refresh) {
-  /*printf("I got name %s\n", name);*/
-}
+                 int refresh) {}
 
 static void done(void *data, struct wl_output *output) {
   printf("==DONE==");
