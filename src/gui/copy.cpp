@@ -215,7 +215,7 @@ void screencopy_init() {
   // printf("Bytes (in init): %.*s\n", 100, (char *)pixels);
 }
 
-std::vector<OutputState *> *screencopy_get() {
+ScreencopyObject screencopy_get() {
   for (OutputState *coutput : outputs) {
     zwlr_screencopy_frame_v1 *frame =
         zwlr_screencopy_manager_v1_capture_output(manager, 0, coutput->output);
@@ -226,10 +226,24 @@ std::vector<OutputState *> *screencopy_get() {
     }
   }
 
+  ScreencopyObject screencopy_object = ScreencopyObject{
+      .id = 0,
+      .frames = std::vector<ScreencopyFrame>(),
+  };
+
+  for (OutputState *coutput : outputs) {
+    screencopy_object.frames.push_back(ScreencopyFrame{
+        .name = coutput->name,
+        .pixels = coutput->pixels,
+        .width = coutput->width,
+        .height = coutput->height,
+    });
+  }
+
   // if (frames.at(0).pixels == NULL) {
   //   fprintf(stderr, "No frames captured.\n");
   //   exit(1);
   // }
 
-  return &outputs;
+  return screencopy_object;
 }

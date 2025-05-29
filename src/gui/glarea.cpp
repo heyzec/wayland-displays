@@ -180,13 +180,13 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   // glGenTextures(boxes.size(), textures);
   if (n % 10 == 0) {
     // printf("============Getting pixels============\n");
-    std::vector<OutputState *> copy_outputs = *screencopy_get();
+    ScreencopyObject copy_outputs = screencopy_get();
 
     std::vector<Box> sorted_boxes;
     std::vector<std::string> sorted_names;
 
-    for (int i = 0; i < copy_outputs.size(); i++) {
-      OutputState *out = copy_outputs.at(i);
+    for (int i = 0; i < copy_outputs.frames.size(); i++) {
+      ScreencopyFrame out = copy_outputs.frames.at(i);
 
       // if (out->copied) {
       //   printf("Copying output %s\n", out->name);
@@ -194,33 +194,33 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
       //   printf("Output %s not copied yet\n", out->name);
       //   continue;
       // }
-      printf("Copying output %s with size %d x %d\n", out->name, out->width, out->height);
+      printf("Copying output %s with size %d x %d\n", out.name, out.width, out.height);
 
       glActiveTexture(GL_TEXTURE1 + i);
       glBindTexture(GL_TEXTURE_2D, textures[i]);
       if (first) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, out->width, out->height, 0, GL_BGRA,
-                     GL_UNSIGNED_BYTE, out->pixels);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, out.width, out.height, 0, GL_BGRA, GL_UNSIGNED_BYTE,
+                     out.pixels);
       } else {
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, out->width, out->height, GL_BGRA, GL_UNSIGNED_BYTE,
-                        out->pixels);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, out.width, out.height, GL_BGRA, GL_UNSIGNED_BYTE,
+                        out.pixels);
         printf("Bytes: ");
         for (int i = 0; i < 100; i++) {
-          printf("%02X ", ((unsigned char *)out->pixels)[i]);
+          printf("%02X ", ((unsigned char *)out.pixels)[i]);
         }
         printf("\n");
       }
       glGenerateMipmap(GL_TEXTURE_2D);
-      munmap(out->pixels, out->size);
-      wl_buffer_destroy(out->buffer);
-      close(out->fd);
+      // munmap(out.pixels, out.size);
+      // wl_buffer_destroy(out.buffer);
+      // close(out.fd);
     }
     if (first) {
       first = false;
     }
-    if (copy_outputs.size() == 0) {
-      printf("No outputs found, using default texture\n");
-    }
+    // if (copy_outputs.size() == 0) {
+    //   printf("No outputs found, using default texture\n");
+    // }
   }
 
   // ==============================================================
@@ -265,11 +265,11 @@ std::vector<std::string> output_names;
 void update_glarea(std::vector<Box> new_boxes, std::vector<std::string> new_names) {
   printf("update gl alled\n");
   if (output_names.size() == 0) {
-    std::vector<OutputState *> copy_outputs = *screencopy_get();
+    ScreencopyObject copy_outputs = screencopy_get();
 
-    for (int i = 0; i < copy_outputs.size(); i++) {
-      OutputState *out = copy_outputs.at(i);
-      output_names.push_back(out->name);
+    for (int i = 0; i < copy_outputs.frames.size(); i++) {
+      ScreencopyFrame out = copy_outputs.frames.at(i);
+      output_names.push_back(out.name);
     }
   }
 

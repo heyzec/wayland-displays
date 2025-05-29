@@ -1,5 +1,22 @@
 #include "wlr-screencopy-unstable-v1.h"
+#include <string>
 #include <vector>
+
+struct ScreencopyFrame {
+  /* Name of output of the source of frame */
+  const std::string name;
+  /* Raw pixel data in XRGB format */
+  const void *pixels;
+  /* Horizontal size of frame in pixels */
+  const uint width;
+  /* Vertical size of frame in pixels */
+  const uint height;
+};
+
+struct ScreencopyObject {
+  /* const */ int id;
+  /* const */ std::vector<ScreencopyFrame> frames;
+};
 
 struct OutputState {
   // OutputState
@@ -29,7 +46,7 @@ void screencopy_init();
  * Get a container of frames of all outputs.
  */
 
-std::vector<OutputState *> *screencopy_get();
+ScreencopyObject screencopy_get();
 /**
  * Destroy the container of frames to free memory after use.
  */
