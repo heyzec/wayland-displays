@@ -25,6 +25,85 @@ void *pixels;
 
 std::vector<CopyOutput *> outputs;
 
+// ============================================================
+// ???
+// ============================================================
+
+static void buffer(void *data, struct zwlr_screencopy_frame_v1 *frame, uint format, uint width,
+                   uint height, uint stride) {
+  CopyOutput *out = (CopyOutput *)data;
+  // printf("Got a buffer event of format %d\n", format);
+
+  char shm_name[32];
+  sprintf(shm_name, "/my_shm%s", out->name);
+  int fd = shm_open(shm_name, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+  out->fd = fd;
+  shm_unlink(shm_name);
+
+  size_t size = stride * height;
+  out->size = size;
+  ftruncate(fd, size);
+  wl_shm_pool *pool = wl_shm_create_pool(shm, fd, size);
+  out->buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, format);
+  wl_shm_pool_destroy(pool); // protocol says we can destroy pool after creating buffer
+
+  zwlr_screencopy_frame_v1_copy(frame, out->buffer);
+
+  out->pixels = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  out->width = width;
+  out->height = height;
+  out->stride = stride;
+}
+
+static void flags(void *data, struct zwlr_screencopy_frame_v1 *frame, uint flags) {
+  CopyOutput *out = (CopyOutput *)data;
+  out->copied = true;
+  // printf("Got a flags event\n");
+  zwlr_screencopy_frame_v1_destroy(frame);
+  // wl_buffer_destroy(out->buffer);
+  // munmap(out->pixels, out->size);
+  // close(out->fd);
+}
+
+static void ready(void *data, struct zwlr_screencopy_frame_v1 *frame, uint tv_sec_hi,
+                  uint tv_sec_lo, uint tv_nsec) {
+  printf("Got a ready event\n");
+}
+
+static void failed(void *data, struct zwlr_screencopy_frame_v1 *frame) {
+  printf("Got a failed event\n");
+}
+
+static void damage(void *data, struct zwlr_screencopy_frame_v1 *frame, uint x, uint y, uint width,
+                   uint height) {
+  printf("Got a dam event\n");
+}
+
+static void linux_dmabuf(void *data, struct zwlr_screencopy_frame_v1 *frame, uint format,
+                         uint width, uint height) {
+  // printf("Got a linux dmabuf event\n");
+  // uint fourcc = format;
+  // printf("FourCC: %c%c%c%c\n", (fourcc & 0xFF), (fourcc >> 8) & 0xFF, (fourcc >> 16) & 0xFF,
+  //        (fourcc >> 24) & 0xFF);
+}
+
+static void buffer_done(void *data, struct zwlr_screencopy_frame_v1 *frame) {
+  // printf("Got a buf done event\n");
+}
+
+static const struct zwlr_screencopy_frame_v1_listener frame_listener = {
+    .buffer = buffer,
+    .flags = flags,
+    .failed = failed,
+    .damage = damage,
+    .linux_dmabuf = linux_dmabuf,
+    .buffer_done = buffer_done,
+};
+
+// ============================================================
+// ???
+// ============================================================
+
 static void geometry(void *data, struct wl_output *output, int x, int y, int physical_width,
                      int physical_height, int subpixel, const char *make, const char *model,
                      int transform) {
@@ -114,79 +193,8 @@ static const struct wl_registry_listener registry_listener = {
 };
 
 // ============================================================
-// Setup and teardown of connection to compositor
+// ???
 // ============================================================
-
-static void buffer(void *data, struct zwlr_screencopy_frame_v1 *frame, uint format, uint width,
-                   uint height, uint stride) {
-  CopyOutput *out = (CopyOutput *)data;
-  // printf("Got a buffer event of format %d\n", format);
-
-  char shm_name[32];
-  sprintf(shm_name, "/my_shm%s", out->name);
-  int fd = shm_open(shm_name, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-  out->fd = fd;
-  shm_unlink(shm_name);
-
-  size_t size = stride * height;
-  out->size = size;
-  ftruncate(fd, size);
-  wl_shm_pool *pool = wl_shm_create_pool(shm, fd, size);
-  out->buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, format);
-  wl_shm_pool_destroy(pool); // protocol says we can destroy pool after creating buffer
-
-  zwlr_screencopy_frame_v1_copy(frame, out->buffer);
-
-  out->pixels = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-  out->width = width;
-  out->height = height;
-  out->stride = stride;
-}
-
-static void flags(void *data, struct zwlr_screencopy_frame_v1 *frame, uint flags) {
-  CopyOutput *out = (CopyOutput *)data;
-  out->copied = true;
-  // printf("Got a flags event\n");
-  zwlr_screencopy_frame_v1_destroy(frame);
-  // wl_buffer_destroy(out->buffer);
-  // munmap(out->pixels, out->size);
-  // close(out->fd);
-}
-
-static void ready(void *data, struct zwlr_screencopy_frame_v1 *frame, uint tv_sec_hi,
-                  uint tv_sec_lo, uint tv_nsec) {
-  printf("Got a ready event\n");
-}
-
-static void failed(void *data, struct zwlr_screencopy_frame_v1 *frame) {
-  printf("Got a failed event\n");
-}
-
-static void damage(void *data, struct zwlr_screencopy_frame_v1 *frame, uint x, uint y, uint width,
-                   uint height) {
-  printf("Got a dam event\n");
-}
-
-static void linux_dmabuf(void *data, struct zwlr_screencopy_frame_v1 *frame, uint format,
-                         uint width, uint height) {
-  // printf("Got a linux dmabuf event\n");
-  // uint fourcc = format;
-  // printf("FourCC: %c%c%c%c\n", (fourcc & 0xFF), (fourcc >> 8) & 0xFF, (fourcc >> 16) & 0xFF,
-  //        (fourcc >> 24) & 0xFF);
-}
-
-static void buffer_done(void *data, struct zwlr_screencopy_frame_v1 *frame) {
-  // printf("Got a buf done event\n");
-}
-
-static const struct zwlr_screencopy_frame_v1_listener frame_listener = {
-    .buffer = buffer,
-    .flags = flags,
-    .failed = failed,
-    .damage = damage,
-    .linux_dmabuf = linux_dmabuf,
-    .buffer_done = buffer_done,
-};
 
 void wlr_screencopy_init() {
   // state = new WlrState{};
