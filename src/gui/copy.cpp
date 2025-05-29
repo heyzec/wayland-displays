@@ -21,7 +21,7 @@ wl_display *display;
 zwlr_screencopy_manager_v1 *manager;
 wl_shm *shm;
 
-struct OutputState {
+struct OutputStateNew {
   wl_output *output;
   std::string name;
 };
@@ -35,7 +35,7 @@ struct FrameState {
   // ScreencopyFrame screencopy_frame;
 };
 
-std::vector<CopyOutput *> outputs;
+std::vector<OutputState *> outputs;
 
 // ============================================================
 // ???
@@ -43,8 +43,8 @@ std::vector<CopyOutput *> outputs;
 
 static void buffer(void *data, struct zwlr_screencopy_frame_v1 *frame, uint format, uint width,
                    uint height, uint stride) {
-  CopyOutput *out = (CopyOutput *)data;
-  // printf("Got a buffer event of format %d\n", format);
+  printf("==BUFFER==\n");
+  OutputState *out = (OutputState *)data;
 
   char shm_name[32];
   sprintf(shm_name, "/my_shm%s", out->name);
@@ -56,19 +56,26 @@ static void buffer(void *data, struct zwlr_screencopy_frame_v1 *frame, uint form
   out->size = size;
   ftruncate(fd, size);
   wl_shm_pool *pool = wl_shm_create_pool(shm, fd, size);
-  out->buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, format);
+  wl_buffer *buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, format);
   wl_shm_pool_destroy(pool); // protocol says we can destroy pool after creating buffer
 
-  zwlr_screencopy_frame_v1_copy(frame, out->buffer);
+  zwlr_screencopy_frame_v1_copy(frame, buffer);
+  void *pixels = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
-  out->pixels = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  if (pixels == NULL) {
+    fprintf(stderr, "Failed to mmap shared memory: %s\n", strerror(errno));
+    exit(1);
+  }
+
+  out->buffer = buffer;
+  out->pixels = pixels;
   out->width = width;
   out->height = height;
   out->stride = stride;
 }
 
 static void flags(void *data, struct zwlr_screencopy_frame_v1 *frame, uint flags) {
-  CopyOutput *out = (CopyOutput *)data;
+  OutputState *out = (OutputState *)data;
   out->copied = true;
   // printf("Got a flags event\n");
   zwlr_screencopy_frame_v1_destroy(frame);
@@ -111,31 +118,20 @@ static const struct zwlr_screencopy_frame_v1_listener frame_listener = {
 
 static void geometry(void *data, struct wl_output *output, int x, int y, int physical_width,
                      int physical_height, int subpixel, const char *make, const char *model,
-                     int transform) {
-  // CopyOutput *copy_output = (CopyOutput *)data;
-  /*printf("I got name %s\n");*/
-}
+                     int transform) {}
 
 static void mode(void *data, struct wl_output *output, uint flags, int width, int height,
-                 int refresh) {
-  /*printf("I got name %s\n", name);*/
-}
+                 int refresh) {}
 
 static void done(void *data, struct wl_output *output) {
   printf("==DONE==\n");
 }
 
-static void scale(void *data, struct wl_output *output, int scale) {
-  // printf("==DONE==");
-}
+static void scale(void *data, struct wl_output *output, int scale) {}
 
 static void name(void *data, struct wl_output *output_, const char *name) {
-  CopyOutput *copy_output = (CopyOutput *)data;
+  OutputState *copy_output = (OutputState *)data;
   copy_output->name = strdup(name);
-  // if (strcmp(name, "DP-5") == 0) {
-  //   printf("Setting output to be copied with name %s\n", name);
-  //   output = output_;
-  // }
 }
 
 static void description(void *data, struct wl_output *output, const char *description) {
@@ -153,14 +149,13 @@ static const struct wl_output_listener output_listener = {
 
 static void global(void *data, struct wl_registry *registry, uint32_t name, const char *interface,
                    uint32_t version) {
-  // printf("interface: '%s', version: %d, name: %d\n", interface, version, name);
   if (strcmp(interface, wl_shm_interface.name) == 0) {
     shm = (wl_shm *)wl_registry_bind(registry, name, &wl_shm_interface, version);
   }
   if (strcmp(interface, wl_output_interface.name) == 0) {
     wl_output *output =
         (wl_output *)wl_registry_bind(registry, name, &wl_output_interface, version);
-    CopyOutput *copy_output = new CopyOutput{
+    OutputState *copy_output = new OutputState{
         .output = output,
     };
     outputs.push_back(copy_output);
@@ -186,6 +181,7 @@ static const struct wl_registry_listener registry_listener = {
 // ============================================================
 
 void screencopy_init() {
+  printf("screencopy_init called\n");
   // state = new WlrState{};
   // Connect to compositor and get the Wayland display singleton
   display = wl_display_connect(NULL);
@@ -219,8 +215,8 @@ void screencopy_init() {
   // printf("Bytes (in init): %.*s\n", 100, (char *)pixels);
 }
 
-std::vector<CopyOutput *> *screencopy_get() {
-  for (CopyOutput *coutput : outputs) {
+std::vector<OutputState *> *screencopy_get() {
+  for (OutputState *coutput : outputs) {
     zwlr_screencopy_frame_v1 *frame =
         zwlr_screencopy_manager_v1_capture_output(manager, 0, coutput->output);
     zwlr_screencopy_frame_v1_add_listener(frame, &frame_listener, coutput);
@@ -229,6 +225,11 @@ std::vector<CopyOutput *> *screencopy_get() {
       wl_display_roundtrip(display);
     }
   }
+
+  // if (frames.at(0).pixels == NULL) {
+  //   fprintf(stderr, "No frames captured.\n");
+  //   exit(1);
+  // }
 
   return &outputs;
 }
