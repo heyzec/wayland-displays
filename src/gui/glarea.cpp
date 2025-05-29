@@ -180,6 +180,7 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
   // glGenTextures(boxes.size(), textures);
   if (n % 10 == 0) {
     // printf("============Getting pixels============\n");
+
     ScreencopyObject frames = screencopy_get();
 
     for (int i = 0; i < frames.frames.size(); i++) {
@@ -213,8 +214,8 @@ static gboolean render(GtkGLArea *area, GdkGLContext *context) {
         // printf("\n");
       }
       glGenerateMipmap(GL_TEXTURE_2D);
-      screencopy_destroy();
-      // munmap(out.pixels, out->size);
+      screencopy_destroy(frames);
+      // munmap(out->pixels, out->size);
       // wl_buffer_destroy(out->buffer);
       // close(out->fd);
     }

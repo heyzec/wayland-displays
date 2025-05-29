@@ -12,7 +12,6 @@
 #include <cstdio>
 #include <cstring>
 #include <fcntl.h>
-#include <string>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <vector>
@@ -21,7 +20,7 @@ wl_display *display;
 zwlr_screencopy_manager_v1 *manager;
 wl_shm *shm;
 
-struct OutputStateNew {
+struct OutputState {
   wl_output *output;
   std::string name;
 };
@@ -32,8 +31,10 @@ struct FrameState {
   wl_buffer *buffer;
   uint size;
   int fd;
-  // ScreencopyFrame screencopy_frame;
+  ScreencopyFrame screencopy_frame;
 };
+
+std::vector<FrameState> frames;
 
 std::vector<OutputState *> outputs;
 
@@ -44,38 +45,41 @@ std::vector<OutputState *> outputs;
 static void buffer(void *data, struct zwlr_screencopy_frame_v1 *frame, uint format, uint width,
                    uint height, uint stride) {
   printf("==BUFFER==\n");
-  OutputState *out = (OutputState *)data;
+  FrameState *state = (FrameState *)data;
 
   char shm_name[32];
-  sprintf(shm_name, "/my_shm%s", out->name);
+  sprintf(shm_name, "/my_shm%s", state->output->name.c_str());
   int fd = shm_open(shm_name, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-  out->fd = fd;
   shm_unlink(shm_name);
 
   size_t size = stride * height;
-  out->size = size;
   ftruncate(fd, size);
   wl_shm_pool *pool = wl_shm_create_pool(shm, fd, size);
   wl_buffer *buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, format);
   wl_shm_pool_destroy(pool); // protocol says we can destroy pool after creating buffer
 
-  zwlr_screencopy_frame_v1_copy(frame, buffer);
   void *pixels = mmap(0, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  zwlr_screencopy_frame_v1_copy(frame, state->buffer);
+
+  state->fd = fd;
+  state->buffer = buffer;
+  state->size = size;
 
   if (pixels == NULL) {
     fprintf(stderr, "Failed to mmap shared memory: %s\n", strerror(errno));
     exit(1);
   }
 
-  out->buffer = buffer;
-  out->pixels = pixels;
-  out->width = width;
-  out->height = height;
-  out->stride = stride;
+  ScreencopyFrame screencopy_frame = {
+      .name = state->output->name,
+      .pixels = pixels,
+      .width = width,
+      .height = height,
+  };
 }
 
 static void flags(void *data, struct zwlr_screencopy_frame_v1 *frame, uint flags) {
-  OutputState *out = (OutputState *)data;
+  CopyOutput *out = (CopyOutput *)data;
   out->copied = true;
   // printf("Got a flags event\n");
   zwlr_screencopy_frame_v1_destroy(frame);
@@ -129,9 +133,9 @@ static void done(void *data, struct wl_output *output) {
 
 static void scale(void *data, struct wl_output *output, int scale) {}
 
-static void name(void *data, struct wl_output *output_, const char *name) {
-  OutputState *copy_output = (OutputState *)data;
-  copy_output->name = strdup(name);
+static void name(void *data, struct wl_output *_, const char *name) {
+  OutputState *output = (OutputState *)data;
+  output->name = std::string(name);
 }
 
 static void description(void *data, struct wl_output *output, const char *description) {
@@ -155,11 +159,9 @@ static void global(void *data, struct wl_registry *registry, uint32_t name, cons
   if (strcmp(interface, wl_output_interface.name) == 0) {
     wl_output *output =
         (wl_output *)wl_registry_bind(registry, name, &wl_output_interface, version);
-    OutputState *copy_output = new OutputState{
-        .output = output,
-    };
-    outputs.push_back(copy_output);
-    wl_output_add_listener(output, &output_listener, copy_output);
+    OutputState *output_state = new OutputState();
+    outputs.push_back(output_state);
+    wl_output_add_listener(output, &output_listener, output_state);
   }
   if (strcmp(interface, zwlr_screencopy_manager_v1_interface.name) == 0) {
     manager = (zwlr_screencopy_manager_v1 *)wl_registry_bind(
@@ -216,34 +218,37 @@ void screencopy_init() {
 }
 
 ScreencopyObject screencopy_get() {
-  for (OutputState *coutput : outputs) {
+  std::vector<FrameState *> frame_states;
+  for (OutputState *output : outputs) {
     zwlr_screencopy_frame_v1 *frame =
-        zwlr_screencopy_manager_v1_capture_output(manager, 0, coutput->output);
-    zwlr_screencopy_frame_v1_add_listener(frame, &frame_listener, coutput);
-    // printf("Roundtrip 2\n");
+        zwlr_screencopy_manager_v1_capture_output(manager, 0, output->output);
+    FrameState *frame_state = new FrameState{
+        .output = output,
+    };
+    frame_states.push_back(frame_state);
+    zwlr_screencopy_frame_v1_add_listener(frame, &frame_listener, frame_state);
     for (int i = 0; i < 1000; i++) {
       wl_display_roundtrip(display);
     }
+    printf("called\n");
   }
 
-  ScreencopyObject screencopy_object = ScreencopyObject{
-      .id = 0,
-      .frames = std::vector<ScreencopyFrame>(),
+  std::vector<ScreencopyFrame> frames = std::vector<ScreencopyFrame>();
+  for (auto frame_state : frame_states) {
+    frames.push_back(frame_state->screencopy_frame);
+  }
+
+  ScreencopyObject object = {
+      .id = 0, // Not used, but required by the interface
+      .frames = frames,
   };
-
-  for (OutputState *coutput : outputs) {
-    screencopy_object.frames.push_back(ScreencopyFrame{
-        .name = coutput->name,
-        .pixels = coutput->pixels,
-        .width = coutput->width,
-        .height = coutput->height,
-    });
-  }
 
   // if (frames.at(0).pixels == NULL) {
   //   fprintf(stderr, "No frames captured.\n");
   //   exit(1);
   // }
 
-  return screencopy_object;
+  return object;
 }
+
+void screencopy_destroy(ScreencopyObject obj) {}

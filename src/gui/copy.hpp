@@ -1,3 +1,4 @@
+// Facade to the Wayland screencopy protocol
 #include "wlr-screencopy-unstable-v1.h"
 #include <string>
 #include <vector>
@@ -14,25 +15,22 @@ struct ScreencopyFrame {
 };
 
 struct ScreencopyObject {
-  /* const */ int id;
-  /* const */ std::vector<ScreencopyFrame> frames;
+  const int id;
+  const std::vector<ScreencopyFrame> frames;
 };
 
-struct OutputState {
-  // OutputState
-  wl_output *output;
-  char *name;
-  // FrameState
-  uint id;
-  // output
-  wl_buffer *buffer;
+struct CopyOutput {
+  // Exposed
   void *pixels;
   uint width;
   uint height;
+  // Internals
+  wl_output *output;
+  wl_buffer *buffer;
   uint stride;
-  uint size; // Obtained from stride * height
+  char *name;
+  uint size; // Obtained from stride * height, not needed if abstract
   int fd;
-  // remove
   bool copied = false;
 };
 
@@ -50,4 +48,4 @@ ScreencopyObject screencopy_get();
 /**
  * Destroy the container of frames to free memory after use.
  */
-void screencopy_destroy();
+void screencopy_destroy(ScreencopyObject obj);
