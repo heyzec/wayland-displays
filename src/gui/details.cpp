@@ -41,6 +41,7 @@ static void (*on_details_updated)(int, DisplayInfo) = [](int, DisplayInfo) {};
 // Only allow these globals to be modified from gui.cpp!
 // TODO: Move these back to gui.cpp
 vector<DisplayInfo> displays;
+/* Index of selected DisplayInfo */
 int selected_display = 0;
 
 // ============================================================

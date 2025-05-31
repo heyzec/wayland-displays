@@ -28,7 +28,7 @@ const float CANVAS_FAC = 0.15;
 
 static GtkWidget *canvas;
 static CanvasState *state;
-static void (*on_canvas_updated)(int, std::vector<Box>);
+static void (*on_canvas_updated)(std::string, std::vector<Box>);
 
 // ============================================================
 // Helpers
@@ -184,7 +184,7 @@ void on_drag_start(GtkGestureDrag *drag_, gdouble start_x, gdouble start_y, gpoi
       break;
     }
   }
-  on_canvas_updated(state->selected_box, state->boxes);
+  on_canvas_updated(state->boxes.at(state->selected_box).name, state->boxes);
 
   queue_draw_area(canvas);
 }
@@ -215,7 +215,7 @@ void on_drag_update(GtkGestureDrag *drag_, gdouble delta_x, gdouble delta_y, gpo
   box->x = MIN(MAX(x, 0), canvas_width / CANVAS_FAC - box->width);
   box->y = MIN(MAX(y, 0), canvas_height / CANVAS_FAC - box->height);
 
-  on_canvas_updated(state->selected_box, state->boxes);
+  on_canvas_updated(state->boxes.at(state->selected_box).name, state->boxes);
 
   queue_draw_area(canvas);
 }
@@ -249,6 +249,6 @@ void refresh_canvas(std::vector<Box> boxes) {
   queue_draw_area(canvas);
 }
 
-void attach_canvas_updated_callback(void (*func)(int, std::vector<Box>)) {
+void attach_canvas_updated_callback(void (*func)(std::string, std::vector<Box>)) {
   on_canvas_updated = func;
 }

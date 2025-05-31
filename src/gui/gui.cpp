@@ -35,7 +35,13 @@ template <class T> using vector = std::vector<T>;
 vector<Box> create_boxes_from_displays(vector<DisplayInfo> displays) {
   auto boxes = vector<Box>();
   for (auto display : displays) {
+    if (!display.enabled) {
+      continue;
+    }
+
     Box box = Box{};
+    box.name = display.name;
+
     box.x = display.pos_x;
     box.y = display.pos_y;
 
@@ -61,17 +67,30 @@ vector<Box> create_boxes_from_displays(vector<DisplayInfo> displays) {
 }
 
 void update_displays_from_boxes(vector<DisplayInfo> *displays, const vector<Box> boxes) {
-  if (displays->size() != boxes.size()) {
-    log_warn("Vector sizes do not match!\n");
-    return;
-  }
+  // Account for when size of boxes less than displays (because some displays are disabled)
+  auto it_display = displays->begin();
+  auto it_box = boxes.begin();
 
-  // Note that only position attributes are updated back
-  for (int i = 0; i < boxes.size(); i++) {
-    Box box = boxes.at(i);
-    DisplayInfo *display = &displays->at(i);
+  while (it_box != boxes.end()) {
+    if (it_display == displays->end()) {
+      log_warn("Assertion failed: Trying to update display {} but not found!",
+               it_box->name.c_str());
+      return;
+    }
+    DisplayInfo *display = &(*it_display);
+    Box box = *it_box;
+    if (display->name != box.name) {
+      ++it_display;
+      continue;
+    }
+
+    // Note that only position attributes are updated back
     display->pos_x = box.x;
     display->pos_y = box.y;
+
+    // Move to next elements
+    ++it_display;
+    ++it_box;
   }
 }
 
@@ -152,9 +171,14 @@ void setup_gui() {
   // Update content values in window
   refresh_gui();
 
-  attach_canvas_updated_callback([](int selected_box, const vector<Box> boxes) {
+  attach_canvas_updated_callback([](string selected_box, const vector<Box> boxes) {
     update_displays_from_boxes(&displays, boxes);
-    selected_display = selected_box;
+    for (int i = 0; i < displays.size(); i++) {
+      if (displays.at(i).name == selected_box) {
+        selected_display = i;
+        break;
+      }
+    }
     refresh_gui();
   });
 
