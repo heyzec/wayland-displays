@@ -186,18 +186,40 @@
             <property name="can-focus">False</property>
             <property name="orientation">vertical</property>
             <child>
-              <object class="GtkDrawingArea" id="drawing_area">
+              <object class="GtkOverlay">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="margin-start">20</property>
-                <property name="margin-end">20</property>
-                <property name="margin-top">20</property>
-                <property name="margin-bottom">20</property>
+                <child>
+                  <object class="GtkGLArea" id="gl_area">
+                    <property name="visible">True</property>
+                    <property name="app-paintable">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-start">20</property>
+                    <property name="margin-end">20</property>
+                    <property name="margin-top">20</property>
+                    <property name="margin-bottom">20</property>
+                  </object>
+                  <packing>
+                    <property name="index">-1</property>
+                  </packing>
+                </child>
+                <child type="overlay">
+                  <object class="GtkDrawingArea" id="drawing_area">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-left">20</property>
+                    <property name="margin-right">20</property>
+                    <property name="margin-start">20</property>
+                    <property name="margin-end">20</property>
+                    <property name="margin-top">20</property>
+                    <property name="margin-bottom">20</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">0</property>
+                <property name="position">1</property>
               </packing>
             </child>
           </object>

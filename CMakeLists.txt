@@ -43,23 +43,34 @@ endif()
 
 find_package(Cairo REQUIRED)
 include_directories(${CAIRO_INCLUDE_DIRS})
-target_link_libraries(wayland-displays PUBLIC ${CAIRO_LIBRARIES})
+target_link_libraries(wayland-displays PRIVATE ${CAIRO_LIBRARIES})
 
 find_package(GTK3 REQUIRED)
+if(NOT GTK3_FOUND)
+    message(FATAL_ERROR "GTK3 not found. Please install the GTK3 development files.")
+endif()
+message(GTK3_INCLUDE_DIRS: ${GTK3_INCLUDE_DIRS})
 include_directories(${GTK3_INCLUDE_DIRS})
 target_link_libraries(wayland-displays PUBLIC ${GTK3_LIBRARIES})
 
 find_package(Wayland REQUIRED)
 include_directories(${WAYLAND_INCLUDE_DIRS})
-target_link_libraries(wayland-displays PUBLIC ${WAYLAND_LIBRARIES})
+target_link_libraries(wayland-displays PRIVATE ${WAYLAND_LIBRARIES})
 
 pkg_check_modules(YAML_CPP REQUIRED yaml-cpp)
 include_directories(${YAML_CPP_INCLUDE_DIRS})
-target_link_libraries(wayland-displays PUBLIC ${YAML_CPP_LIBRARIES})
+target_link_libraries(wayland-displays PRIVATE ${YAML_CPP_LIBRARIES})
 
 find_package(spdlog REQUIRED)
 target_link_libraries(wayland-displays PRIVATE spdlog::spdlog)
 add_compile_definitions(SPDLOG_FMT_EXTERNAL)
+
+find_package(OpenGL REQUIRED)
+target_link_libraries(wayland-displays PRIVATE OpenGL::OpenGL)
+
+find_package(LibEpoxy REQUIRED)
+include_directories(${LibEpoxy_INCLUDE_DIRS})
+target_link_libraries(wayland-displays PRIVATE ${LibEpoxy_LIBRARY})
 
 ########################################
 # Generated protocols
@@ -73,6 +84,9 @@ set(PROTO_OUT ${CMAKE_BINARY_DIR}/protocols)
 
 # Find wayland-scanner binary
 pkg_get_variable(WaylandScanner wayland-scanner wayland_scanner)
+
+set(GENERATED_SOURCES "")
+set(GENERATED_HEADERS "")
 
 function(add_protocol protoName)
     file(MAKE_DIRECTORY ${PROTO_OUT})
@@ -91,13 +105,19 @@ function(add_protocol protoName)
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
 
-    target_sources(generate-protocol PRIVATE ${PROTOCOL_H})
+    list(APPEND GENERATED_HEADERS ${PROTOCOL_H})
+    list(APPEND GENERATED_SOURCES ${PROTOCOL_C})
 
-    add_library(generate-protocol-sources STATIC ${PROTOCOL_C})
+    set(GENERATED_HEADERS "${GENERATED_HEADERS}" PARENT_SCOPE)
+    set(GENERATED_SOURCES "${GENERATED_SOURCES}" PARENT_SCOPE)
 endfunction()
 
 # Add all needed protocols here
 add_protocol("wlr-output-management-unstable-v1")
+add_protocol("wlr-screencopy-unstable-v1")
+
+target_sources(generate-protocol PRIVATE ${GENERATED_HEADERS})
+add_library(generate-protocol-sources STATIC ${GENERATED_SOURCES})
 
 # Include the generated protocol headers
 include_directories(${PROTO_OUT})

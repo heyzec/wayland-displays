@@ -23,8 +23,6 @@ struct CanvasState {
 #define INF 1500
 /* Minimum distance between sides of boxes for snapping to occur */
 #define SNAP_DIST 50
-/* Scaling factor between compositor pixels and canvas pixels */
-const float CANVAS_FAC = 0.15;
 
 static GtkWidget *canvas;
 static CanvasState *state;

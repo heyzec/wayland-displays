@@ -1,12 +1,14 @@
 #pragma once
 
-#include "common/ipc.hpp"
 #include "common/ipc/get.hpp"
-#include "common/logger.hpp"
-#include "common/shapes.hpp"
-
 #include "gui/canvas.hpp"
 #include "gui/details.hpp"
+#include "gui/glarea.hpp"
+#include "gui/screencopy.hpp"
+
+#include "common/ipc.hpp"
+#include "common/logger.hpp"
+#include "common/shapes.hpp"
 
 #include "resources.c"
 
@@ -14,6 +16,9 @@
 #include <signal.h>
 #include <string>
 #include <vector>
+
+#include <epoxy/gl.h>
+#include <gtk/gtk.h>
 
 #define GRESOURCE_PREFIX "/com/heyzec/wayland-displays/"
 
@@ -61,6 +66,8 @@ vector<Box> create_boxes_from_displays(vector<DisplayInfo> displays) {
     box.width = width;
     box.height = height;
 
+    box.transform = display.transform;
+
     boxes.push_back(box);
   }
   return boxes;
@@ -94,12 +101,6 @@ void update_displays_from_boxes(vector<DisplayInfo> *displays, const vector<Box>
   }
 }
 
-void refresh_canvas() {
-  // TODO: Improve code org: it is not clear that canvas_state and redraw_canvas is related
-  vector<Box> boxes = create_boxes_from_displays(displays);
-  refresh_canvas(boxes);
-}
-
 // ============================================================
 // App layout
 // ============================================================
@@ -125,6 +126,10 @@ GtkWidget *get_window() {
   GtkDrawingArea *drawing_area = GTK_DRAWING_AREA(gtk_builder_get_object(builder, "drawing_area"));
   setup_canvas(drawing_area, std::vector<Box>());
 
+  // Get and setup OpenGL area
+  GtkWidget *gl_area = GTK_WIDGET(gtk_builder_get_object(builder, "gl_area"));
+  glarea_setup(gl_area);
+
   setup_details(builder);
 
   // Add header bar
@@ -148,7 +153,9 @@ void update_displays_from_server() {
 }
 
 void refresh_gui() {
-  refresh_canvas();
+  vector<Box> boxes = create_boxes_from_displays(displays);
+  refresh_canvas(boxes);
+  glarea_update(boxes);
   refresh_details();
 }
 
@@ -191,6 +198,7 @@ void setup_gui() {
 }
 
 void run_gui() {
+  screencopy_init();
   setup_gui();
   gtk_main();
   // g_object_unref(builder);

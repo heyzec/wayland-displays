@@ -1,6 +1,8 @@
 set(SOURCES
     gui/canvas.cpp
     gui/details.cpp
+    gui/screencopy.cpp
+    gui/glarea.cpp
     outputs/outputs.cpp
     outputs/head.cpp
     outputs/config.cpp
