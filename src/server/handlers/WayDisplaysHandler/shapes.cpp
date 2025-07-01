@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/logger.hpp"
 #include "common/shapes.hpp"
+#include "common/logger.hpp"
 
 #include <string>
 #include <vector>
@@ -72,7 +72,7 @@ template <> struct convert<Profile> {
       } else {
         name = matcher["NAME"].as<string>();
         settable = matcher.as<DisplaySettable>();
-        settable.show();
+        // settable.show();
       }
       rhs.displays[name] = settable;
     }

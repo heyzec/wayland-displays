@@ -57,7 +57,7 @@ static void done(void *data, struct zwlr_output_manager_v1 *manager, uint32_t se
 }
 
 static void finished(void *data, struct zwlr_output_manager_v1 *manager) {
-  log_debug("Event: Finished");
+  log_debug("event: Finished");
 }
 
 static const struct zwlr_output_manager_v1_listener manager_listener = {
@@ -209,14 +209,14 @@ void apply_configurations(vector<DisplayConfig> configs) {
       zwlr_output_manager_v1_create_configuration(state->manager, state->serial);
   zwlr_output_configuration_v1_add_listener(zwlr_config, get_config_listener(), state->display);
 
-  log_debug("Applying new configuration changes to {} displays...", configs.size());
+  log_info("Applying new configuration changes to {} displays...", configs.size());
   for (DisplayConfig config : configs) {
     for (Head *head : state->heads) {
       if (strcmp(config.name, head->info.name) != 0) {
         continue;
       }
       if (!config.enabled) {
-        log_debug("Disabling {}", config.name);
+        log_debug("apply_configurations: disabling \"{}\"", config.name);
         zwlr_output_configuration_v1_disable_head(zwlr_config, head->wlr_head);
         break;
       }
@@ -230,7 +230,8 @@ void apply_configurations(vector<DisplayConfig> configs) {
       zwlr_output_configuration_head_v1_set_scale(config_head, float_to_fixed(config.scale));
       zwlr_output_configuration_head_v1_set_transform(config_head, config.transform);
 
-      log_debug("Enabling {}: Position ({}, {}) Size {}x{} Scale {} Rate {} Transform {}",
+      log_debug("apply_configurations: enabling display \"{}\": Position ({}, {}) Size {}x{} Scale "
+                "{} Rate {} Transform {}",
                 config.name, config.pos_x, config.pos_y, config.size_x, config.size_y, config.scale,
                 config.rate, config.transform);
       break;

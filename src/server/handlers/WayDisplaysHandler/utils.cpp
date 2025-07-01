@@ -40,13 +40,16 @@ std::map<string, string> assign_displays(const vector<DisplayInfo> displays,
     int index = find_display(unmatched, pattern);
     if (index != -1) {
       assignments[unmatched.at(index).name] = pattern;
+      log_debug("assign_displays: matched pattern <<{}>> to display \"{}\"", pattern,
+                unmatched.at(index).name);
       unmatched.erase(unmatched.begin() + index);
+    } else {
+      log_debug("assign_displays: no match for pattern <<{}>>", pattern);
     }
   }
 
   for (auto it = assignments.begin(); it != assignments.end(); it++) {
     auto [name, pattern] = *it;
-    printf("assignments[%s] = %s\n", name.c_str(), pattern.c_str());
   }
 
   return assignments;
@@ -86,13 +89,17 @@ find_matching_profile(const vector<Profile> profiles, const vector<DisplayInfo> 
       string pattern = pair.first;
       patterns.push_back(pattern);
     }
+    log_debug("find_matching_profile: testing profile \"{}\"", profile.name);
     std::map<string, string> assignments = assign_displays(displays, patterns);
     // Criteria for a match: all displays are matched
     // Can consider relaxing this requirement, e.g. score based partial matches
     if (assignments.size() == patterns.size()) {
+      log_debug("find_matching_profile: found profile \"{}\" with {} assignments", profile.name,
+                assignments.size());
       return std::make_pair(profile, assignments);
     }
   }
+  log_debug("find_matching_profile: no matching profile found");
   return std::nullopt;
 }
 

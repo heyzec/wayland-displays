@@ -154,23 +154,18 @@ static vector<DisplaySettable> arrange_displays(vector<DisplaySettable> displays
 class WayDisplaysHandler : BaseHandler {
   vector<DisplayConfig> *generate_changes(Profile profile, vector<DisplayInfo> *heads,
                                           std::map<string, string> assignments) {
-    printf("Generating changes..., %zu\n", heads->size());
-
     vector<string> enabled_names;
     vector<string> disabled_names;
     std::map<string, std::pair<DisplayInfo, DisplaySettable>>
         map_name_to_pair; // Pair of (current, desired) settings
     for (auto head : *heads) {
-      printf("Let's look at a head\n");
       DisplaySettable &setting = profile.displays[assignments[head.name]];
       if (!setting.enabled.has_value()) {
         setting.enabled = true;
       }
       if (setting.enabled.value()) {
-        printf("Enabled: %s\n", head.name);
         enabled_names.push_back(head.name);
       } else {
-        printf("Disabled: %s\n", head.name);
         disabled_names.push_back(head.name);
       }
       map_name_to_pair[head.name] = std::make_pair(head, setting);
@@ -180,9 +175,7 @@ class WayDisplaysHandler : BaseHandler {
     for (auto [name, pair] : map_name_to_pair) {
       DisplaySettable setting = pair.second;
       if (!setting.enabled.has_value()) {
-        printf("Setting for %s does not have enabled value!!!!!!\n", name.c_str());
-      } else {
-        printf("Setting for %s has enabled value\n", name.c_str());
+        log_warn("Enable for %s is null!\n", name.c_str());
       }
     }
 
