@@ -182,8 +182,11 @@ void on_drag_start(GtkGestureDrag *drag_, gdouble start_x, gdouble start_y, gpoi
       break;
     }
   }
-  on_canvas_updated(state->boxes.at(state->selected_box).name, state->boxes);
+  if (state->selected_box == -1) {
+    return;
+  }
 
+  on_canvas_updated(state->boxes.at(state->selected_box).name, state->boxes);
   queue_draw_area(canvas);
 }
 
