@@ -47,10 +47,28 @@
               socat
               # Git hooks
               pre-commit
+
+              (pkgs.writeShellScriptBin "wayland-displays" ''
+                cd "$(git rev-parse --show-toplevel)/build"
+                echo "Running wayland-displays in build directory..."
+                trap "" SIGUSR1
+                ./wayland-displays $@
+              '')
             ]
             ++ config.packages.default.nativeBuildInputs
             ++ config.packages.default.buildInputs;
         };
       };
+    } // {
+        nixosConfigurations.default = inputs.nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [
+            {
+              imports = [
+                ./tests/vm2/configuration.nix
+              ];
+            }
+          ];
+        };
     };
 }

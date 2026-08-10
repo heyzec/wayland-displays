@@ -29,6 +29,7 @@ IpcSwitchResponse handle_switch(IpcSwitchRequest request, std::optional<Config> 
   std::vector<DisplayConfig> *changes =
       handler.handle_command("switch", profile_name, &heads, config);
   if (changes != nullptr) {
+    printf("There are %zu changes to apply\n", changes->size());
     apply_configurations(*changes);
   }
   return IpcSwitchResponse(true);

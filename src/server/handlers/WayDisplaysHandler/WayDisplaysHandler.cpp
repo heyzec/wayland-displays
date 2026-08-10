@@ -290,11 +290,12 @@ public:
     Profile profile = get_profile_by_name(config->profiles, param);
     // TODO: Don't use hacky way to test for non-match
     if (profile.name == "") {
+      printf("Huh?\n");
       return new vector<DisplayConfig>();
     }
-    return new vector<DisplayConfig>();
+    // return new vector<DisplayConfig>();
     // TODO: Generate an assignment mapping with a method that is not as strict
-    // log_info("Switching to profile: {}", profile.name);
+    log_info("Switching to profile: {}", profile.name);
     // return generate_changes(profile, heads);
   }
 };

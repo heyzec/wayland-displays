@@ -1,0 +1,11 @@
+[project]
+name = "nix-templates-python-uv2nix"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "qemu-qmp>=0.0.6",
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+]
