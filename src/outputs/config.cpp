@@ -7,15 +7,15 @@
 #include "wlr-output-management-unstable-v1.h"
 
 static void succeeded(void *data, struct zwlr_output_configuration_v1 *config) {
-  log_debug("Event: Succeeded");
+  log_debug("event: succeeded");
 }
 
 static void failed(void *data, struct zwlr_output_configuration_v1 *config) {
-  log_debug("Event: Failed");
+  log_debug("event: failed");
 }
 
 static void cancelled(void *data, struct zwlr_output_configuration_v1 *config) {
-  log_debug("Event: Cancelled");
+  log_debug("event: cancelled");
 }
 
 static const struct zwlr_output_configuration_v1_listener config_listener = {
