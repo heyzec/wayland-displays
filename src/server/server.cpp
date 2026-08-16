@@ -38,7 +38,7 @@ int fd_client_sock;
 /* File descriptor for signals */
 int fd_signal;
 /* File descriptor for inotify watching config */
-int fd_config;
+int fd_config = -1;
 
 /* Watch descriptor for inotify */
 int wd = -1;
