@@ -2,6 +2,8 @@
 #include <filesystem>
 #include <string>
 
+#include "common/logger.hpp"
+
 namespace fs = std::filesystem;
 
 std::string get_socket_path() {
@@ -21,5 +23,7 @@ std::string get_config_path() {
     config_dir = fs::path(home) / ".config";
   }
 
-  return config_dir / "wayland-displays.yml";
+  std::string output =  config_dir / "wayland-displays.yml";
+  log_debug(output.c_str());
+  return output;
 };
