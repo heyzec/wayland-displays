@@ -29,4 +29,8 @@ pkgs.stdenv.mkDerivation (finalAttrs: {
     spdlog
     yaml-cpp
   ];
+
+  meta = {
+    mainProgram = "wayland-displays";
+  };
 })
