@@ -40,6 +40,7 @@ static void head(void *data, struct zwlr_output_manager_v1 *manager,
 static void done(void *data, struct zwlr_output_manager_v1 *manager, uint32_t serial) {
   auto state = (WlrState *)data;
 
+  log_debug("done: serial={}", serial);
   state->serial = serial;
 
   // TODO: Let the server decide what to do, rather than masking the event
@@ -205,6 +206,7 @@ void apply_configurations(vector<DisplayConfig> configs) {
     return;
   }
 
+  log_debug("apply_configurations: using serial={}", state->serial);
   struct zwlr_output_configuration_v1 *zwlr_config =
       zwlr_output_manager_v1_create_configuration(state->manager, state->serial);
   zwlr_output_configuration_v1_add_listener(zwlr_config, get_config_listener(), state->display);

@@ -89,6 +89,9 @@ private:
     std::string short_options;
     for (option option : options) {
       short_options += (char)option.val;
+      if (option.has_arg == required_argument) {
+        short_options += ':';
+      }
     }
 
     options.push_back({0, 0, 0, 0});
@@ -120,7 +123,7 @@ private:
           std::cerr << "argument "
                     << "-" << arg->opt_short << "/"
                     << "--" << arg->opt_long << ": ";
-          std::cerr << "invalid";
+          std::cerr << "expected one argument";
         }
         std::cerr << "\n";
 
