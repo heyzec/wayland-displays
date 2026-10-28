@@ -9,6 +9,7 @@
 
 #include "wlr-output-management-unstable-v1.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <stdio.h>
 #include <unistd.h>
@@ -225,8 +226,39 @@ void apply_configurations(vector<DisplayConfig> configs) {
           zwlr_output_configuration_v1_enable_head(zwlr_config, head->wlr_head);
 
       zwlr_output_configuration_head_v1_set_position(config_head, config.pos_x, config.pos_y);
-      zwlr_output_configuration_head_v1_set_custom_mode(config_head, config.size_x, config.size_y,
-                                                        (int)config.rate);
+
+      // Prefer one of the head's advertised modes over a custom one. The rate
+      // we hold is only an approximation of the real mode (the GUI rounds it
+      // to two decimals, so 60.001 Hz arrives here as 60000 mHz), and a
+      // compositor asked for a custom mode it cannot match generates a CVT
+      // timing for it - niri turned 1920x1200@60000 into 1920x1200@59.885
+      // with a 193 MHz pixel clock, which drove an eDP panel outside the one
+      // timing its EDID advertises and made it flicker. Pick the advertised
+      // mode with the requested size whose rate is nearest, within 1 Hz; only
+      // a mode the head does not offer at all is sent as a custom mode.
+      Mode *best = nullptr;
+      int best_diff = 0;
+      for (Mode *mode : head->modes) {
+        if (mode->info.size_x != config.size_x || mode->info.size_y != config.size_y) {
+          continue;
+        }
+        int diff = std::abs(mode->info.rate - config.rate);
+        if (diff > 1000) {
+          continue;
+        }
+        if (best == nullptr || diff < best_diff) {
+          best = mode;
+          best_diff = diff;
+        }
+      }
+      if (best != nullptr) {
+        log_debug("apply_configurations: \"{}\" uses advertised mode {}x{}@{} for requested rate {}",
+                  config.name, best->info.size_x, best->info.size_y, best->info.rate, config.rate);
+        zwlr_output_configuration_head_v1_set_mode(config_head, best->wlr_mode);
+      } else {
+        zwlr_output_configuration_head_v1_set_custom_mode(config_head, config.size_x, config.size_y,
+                                                          (int)config.rate);
+      }
       zwlr_output_configuration_head_v1_set_scale(config_head, float_to_fixed(config.scale));
       zwlr_output_configuration_head_v1_set_transform(config_head, config.transform);
 
