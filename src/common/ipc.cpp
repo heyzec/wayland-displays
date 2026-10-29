@@ -6,6 +6,7 @@
 
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <unistd.h>
 #include <yaml-cpp/yaml.h>
 
 IpcResponse send_ipc_request(IpcRequest request) {
@@ -38,5 +39,6 @@ IpcResponse send_ipc_request(IpcRequest request) {
   // Read response
   YAML::Node response_node = socket_read(fd_client_sock);
   IpcResponse response = response_node.as<IpcResponse>();
+  close(fd_client_sock);
   return response;
 }

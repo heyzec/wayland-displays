@@ -84,9 +84,9 @@ static void finished(void *data, struct zwlr_output_head_v1 *wlr_head) {
   auto heads = &head->state->heads;
 
   heads->erase(std::remove(heads->begin(), heads->end(), head), heads->end());
-  free(head);
   // Protocol requires us to send a destroy request to release resources
   zwlr_output_head_v1_destroy(wlr_head);
+  free(head);
 }
 
 static void make(void *data, struct zwlr_output_head_v1 *head, const char *make) {

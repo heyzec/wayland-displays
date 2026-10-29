@@ -29,9 +29,9 @@ static void finished(void *data, struct zwlr_output_mode_v1 *wlr_mode) {
   auto modes = &mode->head->modes;
 
   modes->erase(std::remove(modes->begin(), modes->end(), mode), modes->end());
-  free(mode);
   // Protocol requires us to send a destroy request to release resources
   zwlr_output_mode_v1_destroy(wlr_mode);
+  free(mode);
 }
 
 static const struct zwlr_output_mode_v1_listener mode_listener = {

@@ -217,6 +217,29 @@ void complete_socket(int client_sock) {
 // Meat of the code
 // ============================================================
 
+static void signal_all(const string &name, int sig) {
+  for (auto &entry : std::filesystem::directory_iterator("/proc")) {
+    if (entry.is_symlink()) {
+      continue; // skip /proc/self/comm
+    }
+    string comm_path = entry.path() / "comm";
+    FILE *f = fopen(comm_path.c_str(), "r");
+    if (!f) {
+      continue;
+    }
+    char comm[16] = {};
+    fgets(comm, sizeof(comm), f);
+    fclose(f);
+    comm[strcspn(comm, "\n")] = 0;
+    if (string(comm) == name.substr(0, 15)) { // kernel caps /proc/<pid>/comm to 15 chars
+      pid_t pid = std::stoi(entry.path().filename());
+      if (pid != getpid()) {
+        kill(pid, sig);
+      }
+    }
+  }
+}
+
 static void refresh_displays(std::vector<DisplayInfo> displays_) {
   // Ignore parameter for now
 
@@ -230,10 +253,8 @@ static void refresh_displays(std::vector<DisplayInfo> displays_) {
     apply_configurations(*changes);
   }
 
-  // Hacky way to signal GUI to update
   // TODO: Only signal after our changes are complete
-  string cmd = "pkill -USR1 -f wayland-displays";
-  system(cmd.c_str());
+  signal_all("wayland-displays", SIGUSR1);
 }
 
 void server_loop() {

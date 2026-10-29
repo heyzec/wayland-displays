@@ -15,6 +15,7 @@
 #include <gtk/gtk.h>
 #include <signal.h>
 #include <string>
+#include <unistd.h>
 #include <vector>
 
 #include <epoxy/gl.h>
@@ -159,14 +160,33 @@ void refresh_gui() {
   refresh_details();
 }
 
-/* On SIGUSR1, refresh GUI */
-void usr1_signal_handler(int signal) {
+static int usr1_sig_pipe[2];
+
+void on_usr1_signal() {
   update_displays_from_server();
   refresh_gui();
 }
 
+/* On SIGUSR1, refresh GUI */
+void usr1_signal_handler(int signal) {
+  // don't call on_usr1_signal() directly here, not async-signal-safe and may deadlock
+  write(usr1_sig_pipe[1], "", 1);
+}
+
 void setup_gui() {
+  pipe(usr1_sig_pipe);
   signal(SIGUSR1, usr1_signal_handler);
+
+  GIOChannel *ch = g_io_channel_unix_new(usr1_sig_pipe[0]);
+  g_io_add_watch(
+      ch, G_IO_IN,
+      [](GIOChannel *ch, GIOCondition, gpointer) -> gboolean {
+        char buf;
+        read(g_io_channel_unix_get_fd(ch), &buf, 1);
+        on_usr1_signal();
+        return TRUE;
+      },
+      nullptr);
 
   update_displays_from_server();
 
