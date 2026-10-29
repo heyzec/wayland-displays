@@ -411,9 +411,9 @@
                     <child>
                       <object class="GtkSpinButton" id="rate_spin">
                         <property name="can-focus">True</property>
-                        <property name="text" translatable="yes">0.00</property>
+                        <property name="text" translatable="yes">0.000</property>
                         <property name="adjustment">rate_spin_adj</property>
-                        <property name="digits">2</property>
+                        <property name="digits">3</property>
                       </object>
                       <packing>
                         <property name="left-attach">0</property>
