@@ -5,7 +5,19 @@
 #include "sandbox.cpp"
 #include "server/server.cpp"
 
+#include <csignal>
+#include <unistd.h>
+
+static void debug_usr1_handler(int, siginfo_t *info, void *) {
+  log_warn("SIGUSR1 received before setup_signals: sender pid={} uid={}", info->si_pid, info->si_uid);
+}
+
 int main(int argc, char *argv[]) {
+  struct sigaction sa = {};
+  sa.sa_sigaction = debug_usr1_handler;
+  sa.sa_flags = SA_SIGINFO;
+  sigaction(SIGUSR1, &sa, nullptr);
+
   init_logger();
   ArgumentParser parser;
 
